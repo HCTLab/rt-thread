@@ -118,8 +118,9 @@ class Win32Spawn:
         return proc.wait()
 
 # generate cconfig.h file
-def GenCconfigFile(env, BuildOptions):
-    import rtconfig
+def GenCconfigFile(env, arch, BuildOptions):
+    rtconfig = __import__('rtconfig_' + arch)
+    # import rtconfig
 
     if rtconfig.PLATFORM == 'gcc':
         contents = ''
@@ -143,13 +144,9 @@ def GenCconfigFile(env, BuildOptions):
                 # add HAVE_CCONFIG_H definition
                 env.AppendUnique(CPPDEFINES = ['HAVE_CCONFIG_H'])
 
-def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = []):
-    import rtconfig
+def AddOptions():
 
     global BuildOptions
-    global Projects
-    global Env
-    global Rtt_Root
 
     # ===== Add option to SCons =====
     AddOption('--dist',
@@ -223,6 +220,40 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
                 action = 'store_true',
                 default = False,
                 help = 'print verbose information during build')
+
+    # ===== Options got from PrepareBuilding()
+    #if env['PLATFORM'] != 'win32':
+    AddOption('--menuconfig',
+                dest = 'menuconfig',
+                action = 'store_true',
+                default = False,
+                help = 'make menuconfig for RT-Thread BSP')
+    if GetOption('menuconfig'):
+        from menuconfig import menuconfig
+        menuconfig(Rtt_Root)
+        exit(0)
+
+    AddOption('--pyconfig',
+                dest = 'pyconfig',
+                action = 'store_true',
+                default = False,
+                help = 'Python GUI menuconfig for RT-Thread BSP')
+    AddOption('--pyconfig-silent',
+                dest = 'pyconfig_silent',
+                action = 'store_true',
+                default = False,
+                help = 'Don`t show pyconfig window')
+
+    #print("Platform:"+sys.platform)
+
+def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=False, has_components=False, remove_components = []):
+    rtconfig = __import__('rtconfig_' + arch)
+    # import rtconfig
+
+    global BuildOptions
+    global Projects
+    global Env
+    global Rtt_Root
 
     Env = env
     Rtt_Root = os.path.abspath(root_directory)
@@ -326,7 +357,7 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
 
     # parse rtconfig.h to get used component
     PreProcessor = PatchedPreProcessor()
-    f = open('rtconfig.h', 'r')
+    f = open(arch + '/rtconfig.h', 'r')
     contents = f.read()
     f.close()
     PreProcessor.process_contents(contents)
@@ -352,7 +383,7 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
         rtconfig.POST_ACTION = ''
 
     # generate cconfig.h file
-    GenCconfigFile(env, BuildOptions)
+    GenCconfigFile(env, arch, BuildOptions)
 
     # auto append '_REENT_SMALL' when using newlib 'nano.specs' option
     if rtconfig.PLATFORM == 'gcc' and str(env['LINKFLAGS']).find('nano.specs') != -1:
@@ -362,28 +393,6 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
         from genconf import genconfig
         genconfig()
         exit(0)
-
-    if env['PLATFORM'] != 'win32':
-        AddOption('--menuconfig',
-                    dest = 'menuconfig',
-                    action = 'store_true',
-                    default = False,
-                    help = 'make menuconfig for RT-Thread BSP')
-        if GetOption('menuconfig'):
-            from menuconfig import menuconfig
-            menuconfig(Rtt_Root)
-            exit(0)
-
-    AddOption('--pyconfig',
-                dest = 'pyconfig',
-                action = 'store_true',
-                default = False,
-                help = 'Python GUI menuconfig for RT-Thread BSP')
-    AddOption('--pyconfig-silent',
-                dest = 'pyconfig_silent',
-                action = 'store_true',
-                default = False,
-                help = 'Don`t show pyconfig window')
 
     if GetOption('pyconfig_silent'):    
         from menuconfig import guiconfig_silent
@@ -422,22 +431,28 @@ def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = [
     # we need to seperate the variant_dir for BSPs and the kernels. BSPs could
     # have their own components etc. If they point to the same folder, SCons
     # would find the wrong source code to compile.
-    bsp_vdir = 'build'
-    kernel_vdir = 'build/kernel'
+    bsp_vdir = 'build/' + rtconfig.ARCH
+    kernel_vdir = 'build/' + rtconfig.ARCH + '/kernel'
     # board build script
     objs = SConscript('SConscript', variant_dir=bsp_vdir, duplicate=0)
     # include kernel
-    objs.extend(SConscript(Rtt_Root + '/src/SConscript', variant_dir=kernel_vdir + '/src', duplicate=0))
+    if not has_kernel:
+        objs.extend(SConscript(Rtt_Root + '/src/SConscript', variant_dir=kernel_vdir + '/src', duplicate=0))
     # include libcpu
     if not has_libcpu:
         objs.extend(SConscript(Rtt_Root + '/libcpu/SConscript',
                     variant_dir=kernel_vdir + '/libcpu', duplicate=0))
 
     # include components
-    objs.extend(SConscript(Rtt_Root + '/components/SConscript',
-                           variant_dir=kernel_vdir + '/components',
-                           duplicate=0,
-                           exports='remove_components'))
+    if not has_components:
+        objs.extend(SConscript(Rtt_Root + '/components/SConscript',
+                               variant_dir=kernel_vdir + '/components',
+                               duplicate=0,
+                               exports='remove_components'))
+
+    #print("Depends: ")
+    #for o in objs:
+    #    print( o.name + ", ")
 
     return objs
 
@@ -642,7 +657,9 @@ def DefineGroup(name, src, depend, **parameters):
             paths.append(os.path.abspath(item))
         group['LOCAL_CPPPATH'] = paths
 
-    import rtconfig
+    rtconfig = __import__('rtconfig_' + Env['ARCH'])
+    # import rtconfig
+
     if rtconfig.PLATFORM == 'gcc':
         if 'CCFLAGS' in group:
             group['CCFLAGS'] = utils.GCCC99Patch(group['CCFLAGS'])
@@ -729,7 +746,7 @@ def BuildLibInstallAction(target, source, env):
             do_copy_file(lib_name, dst_name)
             break
 
-def DoBuilding(target, objects):
+def DoBuilding(target, arch, objects, dolink = False):
 
     # merge all objects into one list
     def one_list(l):
@@ -792,7 +809,7 @@ def DoBuilding(target, objects):
 
         program = Env.Program(target, objects)
 
-    EndBuilding(target, program)
+    EndBuilding(target, arch, program)
 
 def GenTargetProject(program = None):
 
@@ -864,8 +881,9 @@ def GenTargetProject(program = None):
         TargetEclipse(Env, GetOption('reset-project-config'), GetOption('project-name'))
 
 
-def EndBuilding(target, program = None):
-    import rtconfig
+def EndBuilding(target, arch, program = None):
+    rtconfig = __import__('rtconfig_' + arch)
+    # import rtconfig
 
     need_exit = False
 

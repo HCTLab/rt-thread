@@ -1,0 +1,120 @@
+import os
+import sys
+# import rtconfig
+
+if os.getenv('BSP_ROOT'):
+    BSP_ROOT = os.getenv('BSP_ROOT')
+else:
+    BSP_ROOT = r'.'
+
+if os.path.isdir('./rt-thread'):
+    RTT_ROOT = os.path.normpath(os.path.join(os.getcwd(), 'rt-thread/'))
+elif os.getenv('RTT_ROOT'):
+    RTT_ROOT = os.getenv('RTT_ROOT')
+else:
+    RTT_ROOT = os.path.normpath(os.getcwd() + '/../..')
+
+sys.path = sys.path + [os.path.join(RTT_ROOT, 'tools')]
+
+from building import *
+
+TARGET_HYBRID = 'rtthread_hybrid.elf'
+TARGET_ARM = 'rtthread.arm.lib'
+TARGET_RISCV = 'rtthread.risc-v.lib'
+
+Export('BSP_ROOT')
+Export('RTT_ROOT')
+
+AddOptions()
+
+# ------------------------ ARM architecture ------------------------
+
+rtconfig = __import__('rtconfig_arm')
+ARCH=rtconfig.ARCH
+
+env_arm = Environment(tools = ['mingw'],
+              ARCH = rtconfig.ARCH,
+              AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
+              CC = rtconfig.CC, CCFLAGS = rtconfig.CFLAGS,
+              AR = rtconfig.AR, ARFLAGS = '-rc',
+              LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS, _LIBFLAGS=rtconfig.LIBS)
+env_arm.PrependENVPath('PATH', rtconfig.EXEC_PATH)
+
+Export('rtconfig')
+Export('ARCH')
+
+env_arm['CCFLAGS'] = env_arm['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
+
+# add linker script to dependencies (if the linker script changed, relink the target)
+#Depends(TARGET_ARM, rtconfig.LINK_SCRIPT)
+
+# prepare and make building environment per architecture
+objs_arm = PrepareBuilding(env_arm, RTT_ROOT, 'arm')
+DoBuilding(TARGET_ARM, 'arm', objs_arm)
+
+# Show compiled objs
+#print('ARM objects:')
+#for o in objs_arm:
+#    print(o.name+', ')
+
+# ------------------------ RISC-V architecture ------------------------
+
+rtconfig = __import__('rtconfig_risc-v')
+ARCH=rtconfig.ARCH
+
+env_riscv = Environment(tools = ['mingw'],
+              ARCH = rtconfig.ARCH,
+              AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
+              CC = rtconfig.CC, CCFLAGS = rtconfig.CFLAGS,
+              AR = rtconfig.AR, ARFLAGS = '-rc',
+              LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS, _LIBFLAGS=rtconfig.LIBS)
+env_riscv.PrependENVPath('PATH', rtconfig.EXEC_PATH)
+
+Export('rtconfig')
+Export('ARCH')
+
+env_riscv['CCFLAGS'] = env_riscv['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
+env_riscv['ASFLAGS'] = env_riscv['ASFLAGS'] + ' -I' + os.path.join(RTT_ROOT, 'libcpu/risc-v/common')
+
+# add linker script to dependencies (if the linker script changed, relink the target)
+#Depends(TARGET_RISCV, rtconfig.LINK_SCRIPT)
+
+# prepare and make building environment per architecture
+objs_riscv = PrepareBuilding(env_riscv, RTT_ROOT, 'risc-v')
+DoBuilding(TARGET_RISCV, 'risc-v', objs_riscv, True)
+
+# Show compiled objs
+#print('RiscV objects:')
+#for o in objs_riscv:
+#    print(o.name+', ')
+
+# ------------------------ Hybrid linking ------------------------
+
+rtconfig = __import__('rtconfig_hybrid')
+ARCH=rtconfig.ARCH
+
+env_hybrid = Environment(tools = ['mingw'],
+              ARCH = rtconfig.ARCH,
+              AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
+              CC = rtconfig.CC, CCFLAGS = rtconfig.CFLAGS,
+              AR = rtconfig.AR, ARFLAGS = '-rc',
+              LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS, _LIBFLAGS=rtconfig.LIBS)
+env_hybrid.PrependENVPath('PATH', rtconfig.EXEC_PATH)
+
+Export('rtconfig')
+Export('ARCH')
+
+# add linker script to dependencies (if the linker script changed, relink the target)
+#Depends(TARGET_HYBRID, rtconfig.LINK_SCRIPT)
+
+# Patch to extract an entry point module before final hybrid link
+os.system('arm-none-eabi-ar x rtthread.arm.lib startup.o')
+
+# prepare and make building environment for final hybrid architecture
+objs_hybrid = PrepareBuilding(env_hybrid, RTT_ROOT, 'hybrid', True, True, True)
+DoBuilding(TARGET_HYBRID, 'hybrid', objs_hybrid, True)
+
+# Show compiled objs
+#print('Hybrid objects:')
+#for o in objs_hybrid:
+#    print(o.name+', ')

@@ -9,6 +9,12 @@
 [![GitHub pull-requests](https://img.shields.io/github/issues-pr/RT-Thread/rt-thread.svg)](https://github.com/RT-Thread/rt-thread/pulls)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](https://github.com/RT-Thread/rt-thread/pulls)
 
+This is a forked version of the original RT-Thread, which has been modified to support hybrid systems.
+An hybrid system is a hardware with several cores from different ISA's (Instruction Set Architectures).
+RT-Thread-hybrid will allow executing threads, in same operating systems, for different architectures.
+
+This fork is part of a final thesis work from Juan A. Andres Saez.
+
 # Introduction
 
 RT-Thread was born in 2006, it is an open source, neutral, and community-based real-time operating system (RTOS). 

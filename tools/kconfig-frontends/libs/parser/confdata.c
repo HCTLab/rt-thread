@@ -929,7 +929,7 @@ static int conf_split_config(void)
 			d = path;
 			while ((d = strchr(d, '/'))) {
 				*d = 0;
-				if (stat(path, &sb) && mkdir(path, 0755)) {
+				if (stat(path, &sb) && mkdir(path)) {
 					res = 1;
 					goto out;
 				}

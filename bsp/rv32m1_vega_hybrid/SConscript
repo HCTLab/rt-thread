@@ -1,0 +1,23 @@
+# for module compiling
+import os
+Import('ARCH')
+
+cwd = str(Dir('#'))
+objs = []
+
+list_arm = ['arm']
+list_riscv = ['risc-v']
+
+if ARCH == 'arm':
+    for d in list_arm:
+        path = os.path.join(cwd, d)
+        if os.path.isfile(os.path.join(path, 'SConscript')):
+            objs = objs + SConscript(os.path.join(path, 'SConscript'))
+
+if ARCH == 'risc-v':
+    for d in list_riscv:
+        path = os.path.join(cwd, d)
+        if os.path.isfile(os.path.join(path, 'SConscript')):
+            objs = objs + SConscript(os.path.join(path, 'SConscript'))
+
+Return('objs')
