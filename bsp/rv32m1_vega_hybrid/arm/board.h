@@ -13,7 +13,7 @@
 #ifndef __BOARD_H__
 #define __BOARD_H__
 
-#include "LPC43xx.h"
+#include "RV32M1.h"
 #include <rtthread.h>
 
 /* disable SDRAM in default */

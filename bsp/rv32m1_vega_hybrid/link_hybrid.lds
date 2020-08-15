@@ -1,24 +1,29 @@
-/* Entry Point */
-OUTPUT_ARCH( "riscv" )
-
-STACK_SIZE = DEFINED(__stack_size__) ? __stack_size__ : 0x1000;
+RISCV_STACK_SIZE = 0x1000;
+ARM_STACK_SIZE = 0x200;
 
 /* Specify the memory areas */
 MEMORY
 {
-  m_vector              (RX)  : ORIGIN = 0x000FFF00, LENGTH = 0x00000100
-  m_text                (RX)  : ORIGIN = 0x00000000, LENGTH = 0x000FFF00
+  m_vector_riscv        (RX)  : ORIGIN = 0x000FFF00, LENGTH = 0x00000100
+  m_vector_arm          (RX)  : ORIGIN = 0x00000000, LENGTH = 0x00000200
+  m_text                (RX)  : ORIGIN = 0x00000200, LENGTH = 0x000FFD00
   m_data                (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00030000 - 0x1800
 }
 
 /* Define output sections */
 SECTIONS
 {
-  .vectors : ALIGN(4)
+  .vectors_riscv : ALIGN(4)
   {
-    __VECTOR_TABLE = .;
+    riscv___VECTOR_TABLE = .;
     KEEP(*(.vectors))
-  } > m_vector
+  } > m_vector_riscv
+
+  .vectors_arm : ALIGN(4)
+  {
+    arm___VECTOR_TABLE = .;
+    KEEP(*(.interrupt_vector))
+  } > m_vector_arm
 
   /* The program code and other data goes into internal flash */
   .text :
@@ -26,114 +31,250 @@ SECTIONS
     . = ALIGN(4);
     KEEP(*(.startup))
     . = ALIGN(4);
-    __user_vector = .;
+    riscv___user_vector = .;
     KEEP(*(user_vectors))
     *(.text)                 /* .text sections (code) */
     *(.text*)                /* .text* sections (code) */
     *(.rodata)               /* .rodata sections (constants, strings, etc.) */
     *(.rodata*)              /* .rodata* sections (constants, strings, etc.) */
+    *(.glue_7)
+    *(.glue_7t)
+    *(.gnu.linkonce.t*)
     *(.eh_frame)
     *(.init)
     *(.fini)
 
     /* section information for finsh shell */
     . = ALIGN(4);
-    __fsymtab_start = .;
+    arm___fsymtab_start = .;
     KEEP(*(FSymTab))
-    __fsymtab_end = .;
+    arm___fsymtab_end = .;
     . = ALIGN(4);
-    __vsymtab_start = .;
+    arm___vsymtab_start = .;
     KEEP(*(VSymTab))
-    __vsymtab_end = .;
+    arm___vsymtab_end = .;
     . = ALIGN(4);
 
     /* section information for initial. */
     . = ALIGN(4);
-    __rt_init_start = .;
+    arm___rt_init_start = .;
     KEEP(*(SORT(.rti_fn*)))
-    __rt_init_end = .;
+    arm___rt_init_end = .;
     . = ALIGN(4);
-  } > m_text
 
-  .preinit_array :
-  {
-    PROVIDE_HIDDEN (__preinit_array_start = .);
-    KEEP (*(.preinit_array*))
-    PROVIDE_HIDDEN (__preinit_array_end = .);
-  } > m_text
-
-  .init_array :
-  {
-    PROVIDE_HIDDEN (__init_array_start = .);
+    PROVIDE(arm___ctors_start__ = .);
+    /* old GCC version uses .ctors */
+    KEEP(*(SORT(.ctors.*)))
+    KEEP(*(.ctors))
+    /* new GCC version uses .init_array */
     KEEP (*(SORT(.init_array.*)))
-    KEEP (*(.init_array*))
-    PROVIDE_HIDDEN (__init_array_end = .);
+    KEEP (*(.init_array))
+    PROVIDE(arm___ctors_end__ = .);
+
+    . = ALIGN(4);
+    arm__etext = .;
+
+    /* section information for finsh shell */
+    . = ALIGN(4);
+    riscv___fsymtab_start = .;
+    KEEP(*(FSymTab))
+    riscv___fsymtab_end = .;
+    . = ALIGN(4);
+    riscv___vsymtab_start = .;
+    KEEP(*(VSymTab))
+    riscv___vsymtab_end = .;
+    . = ALIGN(4);
+
+    /* section information for initial. */
+    . = ALIGN(4);
+    riscv___rt_init_start = .;
+    KEEP(*(SORT(.rti_fn*)))
+    riscv___rt_init_end = .;
+    . = ALIGN(4);
   } > m_text
 
-  .fini_array :
+  .riscv_preinit_array :
   {
-    PROVIDE_HIDDEN (__fini_array_start = .);
-    KEEP (*(SORT(.fini_array.*)))
-    KEEP (*(.fini_array*))
-    PROVIDE_HIDDEN (__fini_array_end = .);
+    PROVIDE_HIDDEN (riscv___preinit_array_start = .);
+    KEEP (*(.riscv_preinit_array*))
+    PROVIDE_HIDDEN (riscv___preinit_array_end = .);
   } > m_text
 
-  __etext = .;    /* define a global symbol at end of code */
-  __global_pointer = .;    /* define a global symbol at end of code */
-  __DATA_ROM = .; /* Symbol is used by startup for data initialization */
+  .riscv_init_array :
+  {
+    PROVIDE_HIDDEN (riscv___init_array_start = .);
+    KEEP (*(SORT(.riscv_init_array.*)))
+    KEEP (*(.riscv_init_array*))
+    PROVIDE_HIDDEN (riscv___init_array_end = .);
+  } > m_text
 
-  .data : AT(__DATA_ROM)
+  .riscv_fini_array :
+  {
+    PROVIDE_HIDDEN (riscv___fini_array_start = .);
+    KEEP (*(SORT(.riscv_fini_array.*)))
+    KEEP (*(.riscv_fini_array*))
+    PROVIDE_HIDDEN (riscv___fini_array_end = .);
+  } > m_text
+
+  riscv___etext = .;    /* define a global symbol at end of code */
+  riscv___global_pointer = .;    /* define a global symbol at end of code */
+
+  .ARM.extab :
+  {
+    *(.ARM.extab*)
+  } > m_text
+
+  /* The .ARM.exidx section is used for C++ exception handling. */
+  /* .ARM.exidx is sorted, so has to go in its own output section.  */
+  arm___exidx_start = .;
+  .ARM.exidx :
+  {
+    *(.ARM.exidx* .gnu.linkonce.armexidx.*)
+
+    /* This is used by the startup in order to initialize the .data secion */
+    arm__sidata = .;
+  } > m_text
+  arm___exidx_end = .;
+
+  .arm_data : AT(arm__sidata)
   {
     . = ALIGN(4);
-    __DATA_RAM = .;
-    __data_start__ = .;      /* create a global symbol at data start */
-    *(.data)                 /* .data sections */
-    *(.data*)                /* .data* sections */
-    *(.sdata .sdata.*)
-    *(.heapsram*)            /* This is only for the pulpino official test code. */
+    PROVIDE(arm___dtors_start__ = .);
+    KEEP(*(SORT(.arm_dtors.*)))
+    KEEP(*(.arm_dtors))
+    PROVIDE(arm___dtors_end__ = .);
+
+    . = ALIGN(4);
+    /* This is used by the startup in order to initialize the .data secion */
+    arm__sdata = . ;
+
+    *(.arm_data)                 /* .data sections */
+    *(.arm_data*)                /* .data* sections */
+    *(.arm_gnu.linkonce.d*)
+
+    . = ALIGN(4);
+    /* This is used by the startup in order to initialize the .data secion */
+    arm__edata = . ;
+  } > m_data
+
+  riscv___DATA_ROM = .; /* Symbol is used by RISCV startup for data initialization */
+
+  .riscv_data : AT(riscv___DATA_ROM)
+  {
+    . = ALIGN(4);
+    riscv___DATA_RAM = .;
+    riscv___data_start__ = .;      /* create a global symbol at data start */
+    *(.riscv_data)                 /* .data sections */
+    *(.riscv_data*)                /* .data* sections */
+    *(.riscv_gnu.linkonce.d*)
+    *(.riscv_sdata .riscv_sdata.*)
+    *(.riscv_heapsram*)            /* This is only for the pulpino official test code. */
+
     __noncachedata_start__ = .;   /* create a global symbol at ncache data start */
     *(NonCacheable)
     __noncachedata_end__ = .;     /* define a global symbol at ncache data end */
+
     KEEP(*(.jcr*))
     . = ALIGN(4);
-    __data_end__ = .;        /* define a global symbol at data end */
+    riscv___data_end__ = .;        /* define a global symbol at data end */
   } > m_data
 
-  __DATA_END = __DATA_ROM + (__data_end__ - __data_start__);
-  text_end = ORIGIN(m_text) + LENGTH(m_text);
-  ASSERT(__DATA_END <= text_end, "region m_text overflowed with text and data")
+  riscv___DATA_END = riscv___DATA_ROM + (riscv___data_end__ - riscv___data_start__);
+  riscv_text_end = ORIGIN(m_text) + LENGTH(m_text);
 
-  _edata = .;
+  riscv__edata = .;
 
-  .stack :
+  .arm_stack :
   {
     . = ALIGN(8);
-    __StackLimit = .;
-    . += STACK_SIZE;
-    __StackTop = .;
+    . = . + ARM_STACK_SIZE;
+    . = ALIGN(4);
+    arm__estack = .;
+  } > m_data
+
+  .riscv_stack :
+  {
+    . = ALIGN(8);
+    riscv___StackLimit = .;
+    . += RISCV_STACK_SIZE;
+    riscv___StackTop = .;
   } > m_data
 
   /* Initializes stack on the end of block */
-  PROVIDE(__stack = __StackTop);
+  PROVIDE(riscv___stack = riscv___StackTop);
 
-  /* Uninitialized data section */
-  .bss :
+  /* Uninitialized RISCV data section */
+  .riscv_bss :
   {
     /* This is used by the startup in order to initialize the .bss section */
     . = ALIGN(4);
-    __START_BSS = .;
-    __bss_start__ = .;
-    *(.bss)
-    *(.bss*)
-    *(.sbss)
-    *(.sbss*)
-    *(COMMON)
+    riscv___START_BSS = .;
+    riscv___bss_start__ = .;
+    *(.riscv_bss)
+    *(.riscv_bss*)
+    *(.riscv_sbss)
+    *(.riscv_sbss*)
+    *(riscv_COMMON)
     . = ALIGN(4);
-    __bss_end__ = .;
-    __END_BSS = .;
+    riscv___bss_end__ = .;
+    riscv___END_BSS = .;
   } > m_data
 
-  /* End of uninitalized data segement */
-  _end = .;
-  PROVIDE(end = .);
+  /* End of RISCV uninitalized data segment */
+  riscv__end = .;
+  PROVIDE(riscv_end = .);
+
+  arm___bss_start = .;
+  .arm_bss :
+  {
+    . = ALIGN(4);
+    /* This is used by the startup in order to initialize the .bss secion */
+    arm__sbss = .;
+
+    *(.arm_bss)
+    *(.arm_bss.*)
+    *(arm_COMMON)
+
+    . = ALIGN(4);
+    /* This is used by the startup in order to initialize the .bss secion */
+    arm__ebss = . ;
+    *(.arm_bss.init)
+  } > m_data
+
+  arm___bss_end = .;
+  arm__end = .;
+
+  /* Stabs debugging sections.  */
+  .stab          0 : { *(.stab) }
+  .stabstr       0 : { *(.stabstr) }
+  .stab.excl     0 : { *(.stab.excl) }
+  .stab.exclstr  0 : { *(.stab.exclstr) }
+  .stab.index    0 : { *(.stab.index) }
+  .stab.indexstr 0 : { *(.stab.indexstr) }
+  .comment       0 : { *(.comment) }
+  /* DWARF debug sections.
+   * Symbols in the DWARF debugging sections are relative to the beginning
+   * of the section so we begin them at 0.  */
+  /* DWARF 1 */
+  .debug          0 : { *(.debug) }
+  .line           0 : { *(.line) }
+  /* GNU DWARF 1 extensions */
+  .debug_srcinfo  0 : { *(.debug_srcinfo) }
+  .debug_sfnames  0 : { *(.debug_sfnames) }
+  /* DWARF 1.1 and DWARF 2 */
+  .debug_aranges  0 : { *(.debug_aranges) }
+  .debug_pubnames 0 : { *(.debug_pubnames) }
+  /* DWARF 2 */
+  .debug_info     0 : { *(.debug_info .gnu.linkonce.wi.*) }
+  .debug_abbrev   0 : { *(.debug_abbrev) }
+  .debug_line     0 : { *(.debug_line) }
+  .debug_frame    0 : { *(.debug_frame) }
+  .debug_str      0 : { *(.debug_str) }
+  .debug_loc      0 : { *(.debug_loc) }
+  .debug_macinfo  0 : { *(.debug_macinfo) }
+  /* SGI/MIPS DWARF 2 extensions */
+  .debug_weaknames 0 : { *(.debug_weaknames) }
+  .debug_funcnames 0 : { *(.debug_funcnames) }
+  .debug_typenames 0 : { *(.debug_typenames) }
+  .debug_varnames  0 : { *(.debug_varnames) }
 }

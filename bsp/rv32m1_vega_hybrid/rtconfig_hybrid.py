@@ -1,6 +1,6 @@
 import os
 
-# Hybrid compilation options. 
+# Hybrid compilation options.
 # Please refer to 'rtconfig_arm.py' or 'rtconfig_risc-v.py' for specific architecture compiling options
 
 ARCH='hybrid'
@@ -11,7 +11,7 @@ if os.getenv('RTT_CC'):
 
 # only support GNU Hybrid GCC compiler
 PLATFORM 	 = 'gcc'
-EXEC_PATH 	 = '/e/Juancho/UAM/Tesis/software/toolchain/hybrid/bin/'
+EXEC_PATH 	 = '/e/UAM/Tesis/software/toolchain/hybrid/bin'
 
 if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
@@ -20,7 +20,7 @@ BUILD = 'debug'
 
 if PLATFORM == 'gcc':
     # toolchains
-    PREFIX = 'hybrid-none-gnueabihf-'
+    PREFIX = 'hybrid-none-'
     CC = PREFIX + 'gcc'
     CXX = PREFIX + 'g++'
     AS = PREFIX + 'gcc'
@@ -32,8 +32,9 @@ if PLATFORM == 'gcc':
     OBJCPY = PREFIX + 'objcopy'
     CFLAGS = ''
     AFLAGS = ''
+    LINK_SCRIPT = 'link_hybrid.lds'
     TARGET_LIBS = 'rtthread.arm.lib rtthread.risc-v.lib'
-    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T link_hybrid.lds startup.o --start-group %s --end-group ' % TARGET_LIBS
+    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T %s startup_RV32M1_CM4.o startup_RV32M1_ri5cy.o --start-group %s --end-group ' % (LINK_SCRIPT, TARGET_LIBS)
     LIBS = ''
 
     CPATH = ''
@@ -49,6 +50,5 @@ if PLATFORM == 'gcc':
 
 # DUMP_ACTION = OBJDUMP + ' -D -S $TARGET > rtt.asm\n'
 # POST_ACTION = SIZE + ' $TARGET \n'
-# POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
 
-POST_ACTION = ''
+POST_ACTION = OBJCPY + ' -O binary $TARGET hybrid.bin\n' + SIZE + ' $TARGET \n'

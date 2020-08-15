@@ -45,9 +45,6 @@ Export('ARCH')
 
 env_arm['CCFLAGS'] = env_arm['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
 
-# add linker script to dependencies (if the linker script changed, relink the target)
-#Depends(TARGET_ARM, rtconfig.LINK_SCRIPT)
-
 # prepare and make building environment per architecture
 objs_arm = PrepareBuilding(env_arm, RTT_ROOT, 'arm')
 DoBuilding(TARGET_ARM, 'arm', objs_arm)
@@ -76,9 +73,6 @@ Export('ARCH')
 env_riscv['CCFLAGS'] = env_riscv['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
 env_riscv['ASFLAGS'] = env_riscv['ASFLAGS'] + ' -I' + os.path.join(RTT_ROOT, 'libcpu/risc-v/common')
 
-# add linker script to dependencies (if the linker script changed, relink the target)
-#Depends(TARGET_RISCV, rtconfig.LINK_SCRIPT)
-
 # prepare and make building environment per architecture
 objs_riscv = PrepareBuilding(env_riscv, RTT_ROOT, 'risc-v')
 DoBuilding(TARGET_RISCV, 'risc-v', objs_riscv, True)
@@ -105,10 +99,11 @@ Export('rtconfig')
 Export('ARCH')
 
 # add linker script to dependencies (if the linker script changed, relink the target)
-#Depends(TARGET_HYBRID, rtconfig.LINK_SCRIPT)
+Depends(TARGET_HYBRID, rtconfig.LINK_SCRIPT)
 
 # Patch to extract an entry point module before final hybrid link
-os.system('arm-none-eabi-ar x rtthread.arm.lib startup.o')
+os.system('arm-none-eabi-ar x rtthread.arm.lib startup_RV32M1_CM4.o')
+os.system('riscv32-unknown-elf-ar x rtthread.risc-v.lib startup_RV32M1_ri5cy.o')
 
 # prepare and make building environment for final hybrid architecture
 objs_hybrid = PrepareBuilding(env_hybrid, RTT_ROOT, 'hybrid', True, True, True)
