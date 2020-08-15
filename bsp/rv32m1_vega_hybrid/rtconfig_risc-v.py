@@ -54,4 +54,5 @@ if PLATFORM == 'gcc':
     CXXFLAGS = CFLAGS
 
 POST_ACTION = OBJCPY + ' --prefix-symbols riscv_ $TARGET --rename-section .bss=.riscv_bss --rename-section .sbss=.riscv_sbss --rename-section COMMON=riscv_COMMON --rename-section .data=.riscv_data --rename-section .sdata=.riscv_sdata && ' + \
-              OBJCPY + ' --redefine-syms=redef.riscv $TARGET'
+              OBJCPY + ' --redefine-syms=redef.riscv $TARGET && ' + \
+              AR + ' x $TARGET startup_RV32M1_ri5cy.o'

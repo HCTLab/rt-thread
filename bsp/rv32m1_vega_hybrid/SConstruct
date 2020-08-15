@@ -101,10 +101,6 @@ Export('ARCH')
 # add linker script to dependencies (if the linker script changed, relink the target)
 Depends(TARGET_HYBRID, rtconfig.LINK_SCRIPT)
 
-# Patch to extract an entry point module before final hybrid link
-os.system('arm-none-eabi-ar x rtthread.arm.lib startup_RV32M1_CM4.o')
-os.system('riscv32-unknown-elf-ar x rtthread.risc-v.lib startup_RV32M1_ri5cy.o')
-
 # prepare and make building environment for final hybrid architecture
 objs_hybrid = PrepareBuilding(env_hybrid, RTT_ROOT, 'hybrid', True, True, True)
 DoBuilding(TARGET_HYBRID, 'hybrid', objs_hybrid, True)

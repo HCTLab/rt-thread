@@ -48,7 +48,4 @@ if PLATFORM == 'gcc':
 
     CXXFLAGS = CFLAGS
 
-# DUMP_ACTION = OBJDUMP + ' -D -S $TARGET > rtt.asm\n'
-# POST_ACTION = SIZE + ' $TARGET \n'
-
 POST_ACTION = OBJCPY + ' -O binary $TARGET hybrid.bin\n' + SIZE + ' $TARGET \n'
