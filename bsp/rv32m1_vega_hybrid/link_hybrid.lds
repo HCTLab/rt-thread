@@ -5,25 +5,24 @@ ARM_STACK_SIZE = 0x200;
 MEMORY
 {
   m_vector_riscv        (RX)  : ORIGIN = 0x000FFF00, LENGTH = 0x00000100
-  m_vector_arm          (RX)  : ORIGIN = 0x00000000, LENGTH = 0x00000200
-  m_text                (RX)  : ORIGIN = 0x00000200, LENGTH = 0x000FFD00
+  m_text                (RX)  : ORIGIN = 0x00000000, LENGTH = 0x000FFF00
   m_data                (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00030000 - 0x1800
 }
 
 /* Define output sections */
 SECTIONS
 {
-  .vectors_riscv : ALIGN(4)
+  .vectors_riscv :
   {
     riscv___VECTOR_TABLE = .;
     KEEP(*(.vectors))
   } > m_vector_riscv
 
-  .vectors_arm : ALIGN(4)
+  .vectors_arm :
   {
     arm___VECTOR_TABLE = .;
     KEEP(*(.interrupt_vector))
-  } > m_vector_arm
+  } > m_text
 
   /* The program code and other data goes into internal flash */
   .text :
@@ -127,6 +126,7 @@ SECTIONS
   /* The .ARM.exidx section is used for C++ exception handling. */
   /* .ARM.exidx is sorted, so has to go in its own output section.  */
   arm___exidx_start = .;
+
   .ARM.exidx :
   {
     *(.ARM.exidx* .gnu.linkonce.armexidx.*)
@@ -134,9 +134,14 @@ SECTIONS
     /* This is used by the startup in order to initialize the .data secion */
     arm__sidata = .;
   } > m_text
-  arm___exidx_end = .;
 
-  .arm_data : AT(arm__sidata)
+  arm_text_end = ORIGIN(m_text) + LENGTH(m_text);
+  riscv_text_end = ORIGIN(m_text) + LENGTH(m_text);
+
+  arm___exidx_end = .;
+  arm___DATA_ROM = .;
+
+  .arm_data : AT(arm___DATA_ROM)
   {
     . = ALIGN(4);
     PROVIDE(arm___dtors_start__ = .);
@@ -144,8 +149,10 @@ SECTIONS
     KEEP(*(.arm_dtors))
     PROVIDE(arm___dtors_end__ = .);
 
-    . = ALIGN(4);
     /* This is used by the startup in order to initialize the .data secion */
+    . = ALIGN(4);
+    arm___DATA_RAM = .;
+    arm___data_start__ = .;      /* create a global symbol at data start */
     arm__sdata = . ;
 
     *(.arm_data)                 /* .data sections */
@@ -154,16 +161,22 @@ SECTIONS
 
     . = ALIGN(4);
     /* This is used by the startup in order to initialize the .data secion */
-    arm__edata = . ;
+    arm___data_end__ = .;        /* define a global symbol at data end */
   } > m_data
 
-  riscv___DATA_ROM = .; /* Symbol is used by RISCV startup for data initialization */
+  arm___DATA_END = arm___DATA_ROM + (arm___data_end__ - arm___data_start__);
+  arm__edata = .;
 
-  .riscv_data : AT(riscv___DATA_ROM)
+  riscv___DATA_ROM = .;          /* Symbol is used by RISCV startup for data initialization */
+
+  .riscv_data :
   {
+    /* This is used by the startup in order to initialize the .data secion */
     . = ALIGN(4);
     riscv___DATA_RAM = .;
     riscv___data_start__ = .;      /* create a global symbol at data start */
+    riscv__sdata = . ;
+
     *(.riscv_data)                 /* .data sections */
     *(.riscv_data*)                /* .data* sections */
     *(.riscv_gnu.linkonce.d*)
@@ -180,8 +193,6 @@ SECTIONS
   } > m_data
 
   riscv___DATA_END = riscv___DATA_ROM + (riscv___data_end__ - riscv___data_start__);
-  riscv_text_end = ORIGIN(m_text) + LENGTH(m_text);
-
   riscv__edata = .;
 
   .arm_stack :
