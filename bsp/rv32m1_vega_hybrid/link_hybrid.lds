@@ -255,6 +255,9 @@ SECTIONS
   arm___bss_end = .;
   arm__end = .;
 
+  arm___heap_start = .;
+  riscv___heap_start = .;
+
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }
   .stabstr       0 : { *(.stabstr) }

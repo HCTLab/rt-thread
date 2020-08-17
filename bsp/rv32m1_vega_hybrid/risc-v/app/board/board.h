@@ -13,10 +13,9 @@
 
 #include <stdint.h>
 
-extern unsigned char __bss_start__;
-extern unsigned char __bss_end__;
+extern unsigned char __heap_start;
 
-#define RT_HW_HEAP_BEGIN    (void*)&__bss_end__
+#define RT_HW_HEAP_BEGIN    (void*)&__heap_start
 #define RT_HW_HEAP_END      (void*)(0x20000000 + 0x00030000 - 0x1800)
 
 #define BOARD_USDHC0_BASEADDR USDHC0

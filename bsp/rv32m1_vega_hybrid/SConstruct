@@ -45,6 +45,9 @@ Export('ARCH')
 
 env_arm['CCFLAGS'] = env_arm['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
 
+# add RT config header as dependency (if header changes, relink the target)
+Depends(TARGET_HYBRID, rtconfig.ARCH + '/rtconfig.h')
+
 # prepare and make building environment per architecture
 objs_arm = PrepareBuilding(env_arm, RTT_ROOT, 'arm')
 DoBuilding(TARGET_ARM, 'arm', objs_arm)
@@ -72,6 +75,9 @@ Export('ARCH')
 
 env_riscv['CCFLAGS'] = env_riscv['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
 env_riscv['ASFLAGS'] = env_riscv['ASFLAGS'] + ' -I' + os.path.join(RTT_ROOT, 'libcpu/risc-v/common')
+
+# add RT config header as dependency (if header changes, relink the target)
+Depends(TARGET_HYBRID, rtconfig.ARCH + '/rtconfig.h')
 
 # prepare and make building environment per architecture
 objs_riscv = PrepareBuilding(env_riscv, RTT_ROOT, 'risc-v')

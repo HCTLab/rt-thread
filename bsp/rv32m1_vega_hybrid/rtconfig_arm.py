@@ -19,9 +19,9 @@ if os.getenv('RTT_CC'):
 
 # only support GNU GCC compiler
 PLATFORM 	 = 'gcc'
-EXEC_PATH 	 = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/bin'
-GCC_LIB_PATH = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0'
-GCC_INC_PATH = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0/include'
+EXEC_PATH 	 = '/c/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/bin'
+GCC_LIB_PATH = '/c/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0'
+GCC_INC_PATH = '/c/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0/include'
 
 if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')

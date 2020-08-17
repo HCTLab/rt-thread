@@ -122,25 +122,3 @@ static void led_thread_entry(void *parameter)
         rt_thread_delay(1000);
     }
 }
-
-int rt_application_init(void)
-{
-    rt_thread_t tid;
-    rt_err_t result;
-    tid = rt_thread_create("init",
-                           rt_init_thread_entry, RT_NULL,
-                           2048, 3, 20);
-    if (tid != RT_NULL)
-        rt_thread_startup(tid);
-
-    /* init led thread */
-    result = rt_thread_init(&led_thread, "led",
-                            led_thread_entry, RT_NULL,
-                            (rt_uint8_t *)&led_stack[0], sizeof(led_stack),
-                            20, 5);
-    if (result == RT_EOK)
-    {
-        rt_thread_startup(&led_thread);
-    }
-    return 0;
-}

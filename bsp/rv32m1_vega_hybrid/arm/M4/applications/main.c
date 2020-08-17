@@ -14,7 +14,7 @@
 
 int main(int argc, char** argv)
 {
-    rt_kprintf("Hello RT-Thread from RISCV!\n");
+    rt_kprintf("Hello RT-Thread from ARM!\n");
 
     return 0;
 }

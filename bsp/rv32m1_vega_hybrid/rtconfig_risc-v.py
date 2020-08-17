@@ -10,7 +10,7 @@ if os.getenv('RTT_CC'):
 
 if  CROSS_TOOL == 'gcc':
     PLATFORM    = 'gcc'
-    EXEC_PATH   = r'/e/UAM/Tesis/software/toolchain/riscv/bin'
+    EXEC_PATH   = r'/e/Juancho/UAM/Tesis/software/toolchain/riscv/bin'
 else:
     print('Please make sure your toolchains is GNU GCC!')
     exit(0)

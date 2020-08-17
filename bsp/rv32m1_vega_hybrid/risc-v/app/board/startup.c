@@ -6,7 +6,7 @@
  * Change Logs:
  * Date           Author       Notes
  * 2009-01-05     Bernard      first implementation
- * 2014-07-13     xiaonong     for LPC43xx
+ * 2020-07-28     jaandres     for RV32M1_VEGA
  */
 
 #include <rthw.h>
@@ -17,7 +17,6 @@
 extern void rt_application_init(void);
 extern int rtthread_startup(void);
 
-/* Add -eentry to arm-none-eabi-gcc argument */
 int entry(void)
 {
     rtthread_startup();

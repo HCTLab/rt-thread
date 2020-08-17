@@ -5,6 +5,7 @@ from building import *
 cwd     = GetCurrentDir()
 src     = Split('''
 board.c
+startup.c
 pin_mux.c
 clock_config.c
 fsl_host.c
