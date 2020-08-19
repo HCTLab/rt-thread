@@ -148,7 +148,7 @@ extern void INTMUX0_7_IRQHandler(void);
    ---------------------------------------------------------------------------- */
 uint32_t SystemCoreClock = DEFAULT_SYSTEM_CLOCK;
 
-extern uint32_t __etext;
+extern uint32_t __DATA_ROM;
 extern uint32_t __data_start__;
 extern uint32_t __data_end__;
 
@@ -365,7 +365,7 @@ void SystemInit (void) {
 
   SystemInitHook();
 
-  copy_section(&__etext, &__data_start__, &__data_end__);
+  copy_section(&__DATA_ROM, &__data_start__, &__data_end__);
   zero_section(&__bss_start__, &__bss_end__);
 
   /* Setup the vector table address. */

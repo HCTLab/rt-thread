@@ -11,7 +11,7 @@ if os.getenv('RTT_CC'):
 
 # only support GNU Hybrid GCC compiler
 PLATFORM 	 = 'gcc'
-EXEC_PATH 	 = '/e/Juancho/UAM/Tesis/software/toolchain/hybrid/bin'
+EXEC_PATH 	 = '/e/UAM/Tesis/software/toolchain/hybrid/bin'
 
 if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')

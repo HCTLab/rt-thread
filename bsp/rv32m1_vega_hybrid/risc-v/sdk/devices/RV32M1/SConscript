@@ -10,6 +10,7 @@ drivers/fsl_common.c
 drivers/fsl_lpuart.c
 drivers/fsl_gpio.c
 drivers/fsl_msmc.c
+drivers/fsl_mu.c
 drivers/fsl_usdhc.c
 drivers/fsl_intmux.c
 gcc/startup_RV32M1_ri5cy.S

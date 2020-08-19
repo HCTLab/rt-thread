@@ -19,9 +19,9 @@ if os.getenv('RTT_CC'):
 
 # only support GNU GCC compiler
 PLATFORM 	 = 'gcc'
-EXEC_PATH 	 = '/c/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/bin'
-GCC_LIB_PATH = '/c/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0'
-GCC_INC_PATH = '/c/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0/include'
+EXEC_PATH 	 = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/bin'
+GCC_LIB_PATH = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0'
+GCC_INC_PATH = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0/include'
 
 if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
@@ -62,7 +62,7 @@ if PLATFORM == 'gcc':
 
 POST_ACTION = 'cd build/' + ARCH + ' && ' + AR + ' x ' + GCC_LIB_PATH + '/libgcc.a && ' + \
                                             AR + ' rcs ../../$TARGET *.o && ' + \
-              'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET --rename-section .bss=.arm_bss --rename-section .sbss*=.arm_sbss* --rename-section COMMON=arm_COMMON --rename-section .data=.arm_data --rename-section .sdata=.arm_sdata && ' + \
+              'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET --rename-section .bss=.arm_bss --rename-section .sbss=.arm_sbss --rename-section .data=.arm_data --rename-section .sdata=.arm_sdata && ' + \
                                 OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
                                 AR + ' x $TARGET startup_RV32M1_CM4.o'
 

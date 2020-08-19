@@ -162,12 +162,12 @@ SECTIONS
     . = ALIGN(4);
     /* This is used by the startup in order to initialize the .data secion */
     arm___data_end__ = .;        /* define a global symbol at data end */
+    arm__edata = .;
   } > m_data
 
   arm___DATA_END = arm___DATA_ROM + (arm___data_end__ - arm___data_start__);
-  arm__edata = .;
 
-  riscv___DATA_ROM = .;          /* Symbol is used by RISCV startup for data initialization */
+  riscv___DATA_ROM = arm___DATA_END;    /* Symbol is used by RISCV startup for data initialization */
 
   .riscv_data :
   {
@@ -190,10 +190,10 @@ SECTIONS
     KEEP(*(.jcr*))
     . = ALIGN(4);
     riscv___data_end__ = .;        /* define a global symbol at data end */
+    riscv__edata = .;
   } > m_data
 
   riscv___DATA_END = riscv___DATA_ROM + (riscv___data_end__ - riscv___data_start__);
-  riscv__edata = .;
 
   .arm_stack :
   {
@@ -221,11 +221,15 @@ SECTIONS
     . = ALIGN(4);
     riscv___START_BSS = .;
     riscv___bss_start__ = .;
+
     *(.riscv_bss)
     *(.riscv_bss*)
     *(.riscv_sbss)
     *(.riscv_sbss*)
-    *(riscv_COMMON)
+
+    /* Include COMMON section (generated dynamically by linker) */
+    *(COMMON)
+
     . = ALIGN(4);
     riscv___bss_end__ = .;
     riscv___END_BSS = .;
@@ -235,24 +239,26 @@ SECTIONS
   riscv__end = .;
   PROVIDE(riscv_end = .);
 
-  arm___bss_start = .;
   .arm_bss :
   {
-    . = ALIGN(4);
     /* This is used by the startup in order to initialize the .bss secion */
+    . = ALIGN(4);
     arm__sbss = .;
+    arm___START_BSS = .;
+    arm___bss_start = .;
 
     *(.arm_bss)
     *(.arm_bss.*)
-    *(arm_COMMON)
+    *(.arm_sbss)
+    *(.arm_sbss*)
 
     . = ALIGN(4);
-    /* This is used by the startup in order to initialize the .bss secion */
-    arm__ebss = . ;
+    arm__ebss = .;
+    arm___bss_end = .;
+    arm___END_BSS = .;
     *(.arm_bss.init)
   } > m_data
 
-  arm___bss_end = .;
   arm__end = .;
 
   arm___heap_start = .;

@@ -17,6 +17,8 @@
 #include "pin_mux.h"
 #include "clock_config.h"
 
+#include "mcmgr.h"
+
 #include <fsl_clock.h>
 #include <fsl_intmux.h>
 
@@ -48,6 +50,14 @@ const scg_lpfll_config_t g_appScgLpFllConfig_BOARD_BootClockRUN = {
 
 void rt_hw_board_init(void)
 {
+    /* Initialize MCMGR - low level multicore management library.
+       Call this function as close to the reset entry as possible,
+       (into the startup sequence) to allow CoreUp event triggering. */
+    MCMGR_EarlyInit();
+
+    /* Initialize MCMGR, install generic event handlers */
+    MCMGR_Init();
+
     BOARD_InitPins();
     BOARD_BootClockRUN();
     /* Init LPFLL */

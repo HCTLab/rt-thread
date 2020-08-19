@@ -53,9 +53,6 @@ void rt_hw_board_init()
     SCB->VTOR  = 0x00000000;
 #endif
 #endif
-    /* update the core clock */
-    SystemCoreClockUpdate();
-
     /* init systick */
     SysTick_Config(SystemCoreClock / RT_TICK_PER_SECOND);
 
@@ -69,8 +66,8 @@ void rt_hw_board_init()
     rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 
 #ifdef RT_USING_HEAP
-    /* initialize memory system */
-    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+    /* initialize memory system -> Done by main core */
+    //rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
 #endif
 
 #ifdef RT_USING_COMPONENTS_INIT

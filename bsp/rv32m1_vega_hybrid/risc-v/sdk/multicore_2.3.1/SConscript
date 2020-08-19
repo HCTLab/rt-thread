@@ -1,0 +1,15 @@
+# RT-Thread building script for component
+
+from building import *
+
+cwd     = GetCurrentDir()
+src     = Split('''
+mcmgr/src/mcmgr.c
+mcmgr/src/mcmgr_mu_internal.c
+mcmgr/src/mcmgr_internal_core_api_rv32m1.c
+''')
+CPPPATH = [cwd + '/mcmgr/inc']
+
+group = DefineGroup('Libraries', src, depend = [''], CPPPATH = CPPPATH)
+
+Return('group')

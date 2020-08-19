@@ -10,7 +10,7 @@ if os.getenv('RTT_CC'):
 
 if  CROSS_TOOL == 'gcc':
     PLATFORM    = 'gcc'
-    EXEC_PATH   = r'/e/Juancho/UAM/Tesis/software/toolchain/riscv/bin'
+    EXEC_PATH   = r'/e/UAM/Tesis/software/toolchain/rv32m1_sdk/riscv32-unknown-elf-gcc/bin'
 else:
     print('Please make sure your toolchains is GNU GCC!')
     exit(0)
@@ -53,6 +53,6 @@ if PLATFORM == 'gcc':
 
     CXXFLAGS = CFLAGS
 
-POST_ACTION = OBJCPY + ' --prefix-symbols riscv_ $TARGET --rename-section .bss=.riscv_bss --rename-section .sbss=.riscv_sbss --rename-section COMMON=riscv_COMMON --rename-section .data=.riscv_data --rename-section .sdata=.riscv_sdata && ' + \
+POST_ACTION = OBJCPY + ' --prefix-symbols riscv_ $TARGET --rename-section .bss=.riscv_bss --rename-section .sbss=.riscv_sbss --rename-section .data=.riscv_data --rename-section .sdata=.riscv_sdata && ' + \
               OBJCPY + ' --redefine-syms=redef.riscv $TARGET && ' + \
               AR + ' x $TARGET startup_RV32M1_ri5cy.o'
