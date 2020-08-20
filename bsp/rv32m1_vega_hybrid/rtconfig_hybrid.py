@@ -2,19 +2,22 @@ import os
 
 # Hybrid compilation options.
 # Please refer to 'rtconfig_arm.py' or 'rtconfig_risc-v.py' for specific architecture compiling options
-
-ARCH='hybrid'
-CROSS_TOOL='gcc'
+CROSS_TOOL  ='gcc'
+ARCH        ='hybrid'
 
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
 
 # only support GNU Hybrid GCC compiler
-PLATFORM 	 = 'gcc'
-EXEC_PATH 	 = '/e/UAM/Tesis/software/toolchain/hybrid/bin'
+if  CROSS_TOOL == 'gcc':
+    PLATFORM    = 'gcc'
+    EXEC_PATH   = r'/.../hybrid-none-eabi/bin'
+else:
+    print('Please make sure your toolchains is GNU GCC!')
+    exit(0)
 
-if os.getenv('RTT_EXEC_PATH'):
-    EXEC_PATH = os.getenv('RTT_EXEC_PATH')
+if os.getenv('RTT_EXEC_PATH_HYBRID'):
+    EXEC_PATH = os.getenv('RTT_EXEC_PATH_HYBRID')
 
 BUILD = 'debug'
 

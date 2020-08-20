@@ -1,30 +1,28 @@
 import os
 
-# core to be use
-#USE_CORE = 'CORE_M0'
-USE_CORE = 'CORE_M4'
-
 # toolchains options
-ARCH='arm'
+CROSS_TOOL  ='gcc'
+ARCH        ='arm'
+CPU         ='cortex-m4'
 
-if USE_CORE == 'CORE_M4':
-    CPU = 'cortex-m4'
-else:
-    CPU = 'cortex-m0'
-
-CROSS_TOOL='gcc'
+# core to be use
+#USE_CORE    ='CORE_M0'
+USE_CORE    ='CORE_M4'
 
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
 
-# only support GNU GCC compiler
-PLATFORM 	 = 'gcc'
-EXEC_PATH 	 = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/bin'
-GCC_LIB_PATH = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0'
-GCC_INC_PATH = '/e/Xilinx/SDK/2019.1/gnu/aarch32/nt/gcc-arm-none-eabi/lib/gcc/arm-none-eabi/8.2.0/include'
+if  CROSS_TOOL == 'gcc':
+    PLATFORM    = 'gcc'
+    EXEC_PATH   = r'/.../gcc-arm-none-eabi/bin'
+else:
+    print('Please make sure your toolchains is GNU GCC!')
+    exit(0)
 
-if os.getenv('RTT_EXEC_PATH'):
-    EXEC_PATH = os.getenv('RTT_EXEC_PATH')
+if os.getenv('RTT_EXEC_PATH_ARM'):
+    EXEC_PATH = os.getenv('RTT_EXEC_PATH_ARM')
+
+GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/8.2.0'
 
 BUILD = 'debug'
 

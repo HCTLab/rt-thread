@@ -1,22 +1,22 @@
 import os
 
 # toolchains options
+CROSS_TOOL  ='gcc'
 ARCH        ='risc-v'
 CPU         ='rv32m1'
-CROSS_TOOL  ='gcc'
 
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
 
 if  CROSS_TOOL == 'gcc':
     PLATFORM    = 'gcc'
-    EXEC_PATH   = r'/e/UAM/Tesis/software/toolchain/rv32m1_sdk/riscv32-unknown-elf-gcc/bin'
+    EXEC_PATH   = r'/.../riscv32-unknown-elf-gcc/bin'
 else:
     print('Please make sure your toolchains is GNU GCC!')
     exit(0)
 
-if os.getenv('RTT_EXEC_PATH'):
-    EXEC_PATH = os.getenv('RTT_EXEC_PATH')
+if os.getenv('RTT_EXEC_PATH_RISCV'):
+    EXEC_PATH = os.getenv('RTT_EXEC_PATH_RISCV')
 
 BUILD = 'debug'
 
