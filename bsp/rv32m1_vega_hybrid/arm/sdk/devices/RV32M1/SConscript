@@ -8,7 +8,6 @@ drivers/fsl_clock.c
 drivers/fsl_common.c
 drivers/fsl_mu.c
 drivers/fsl_sema42.c
-drivers/fsl_xrdc.c
 ''')
 CPPPATH = [cwd, cwd + '/drivers', cwd + '/utilities']
 CPPDEFINES = ['CPU_RV32M1_cm4', 'SDK_DEBUGCONSOLE=0']

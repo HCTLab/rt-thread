@@ -28,13 +28,15 @@
 #define APP_SEMA42               SEMA420
 #define APP_CORE1_BOOT_MODE      kMU_CoreBootFromDflashBase
 #define BOOT_FLAG                0x01U
+#define SEMA42_GATE              0U
+#define LOCK_CORE                0U
 
 
 void APP_InitDomain(void)
 {
     /*
-     * This function assigns core 0 (CM4) to domain 0, assigns core 1 (RI5CY)
-     * to domain 1. Then sets the necessary memory and peripheral permission.
+     * This function assigns core RI5CY to domain 0, assigns core CM0+ to domain 1
+     * Then sets the necessary memory and peripheral permission.
      */
 
     uint32_t i;
@@ -49,26 +51,24 @@ void APP_InitDomain(void)
 
     XRDC_Init(XRDC);
     XRDC_SetGlobalValid(XRDC, false);
+    XRDC_GetDefaultProcessorDomainAssignment(&domainConfig);
 
-    /* Assign RI5CY to domain 0 */
+    // Assign RI5CY to domain
     domainConfig.domainId = 0;
     XRDC_SetProcessorDomainAssignment(XRDC, kXRDC_MasterRI5CYCodeBus, 0, &domainConfig);
     XRDC_SetProcessorDomainAssignment(XRDC, kXRDC_MasterRI5CYSystemBus, 0, &domainConfig);
 
-    /* Assign CM0+ to domain 1 */
-    XRDC_GetDefaultProcessorDomainAssignment(&domainConfig);
+    // Assign CM0+ to domain
     domainConfig.domainId = 1;
     XRDC_SetProcessorDomainAssignment(XRDC, kXRDC_MasterCM0P, 0, &domainConfig);
     //XRDC_SetProcessorDomainAssignment(XRDC, kXRDC_MasterCM4CodeBus, 0, &domainConfig);
     //XRDC_SetProcessorDomainAssignment(XRDC, kXRDC_MasterCM4SystemBus, 0, &domainConfig);
 
-    /*
-     * Configure the peripheral policy.
-     */
+    // Configure the peripheral policy.
     XRDC_GetPeriphAccessDefaultConfig(&periConfig);
-    /* Access permission for domain 0. */
+    // Access permission for domain 0
     periConfig.policy[0] = kXRDC_AccessPolicyAll;
-    /* Access permission for domain 1. */
+    // Access permission for domain 1
     periConfig.policy[1] = kXRDC_AccessPolicyAll;
 
     for (i = 0; i < ARRAY_SIZE(periphAccessible); i++)
@@ -76,11 +76,11 @@ void APP_InitDomain(void)
         periConfig.periph = periphAccessible[i];
         XRDC_SetPeriphAccessConfig(XRDC, &periConfig);
     }
-
-    /* Configure the memory policy. */
+    
+    // Configure default memory policy
     XRDC_GetMemAccessDefaultConfig(&memConfig);
     
-    /* Flash 1 code region. */
+    // Flash 1 code region
     memConfig.mem = kXRDC_MemMrc0_0;
     memConfig.baseAddress = 0x00000000U;
     memConfig.endAddress = 0x000FFFFFU;
@@ -89,7 +89,7 @@ void APP_InitDomain(void)
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
-    /* Flash 2 code region. */
+    // Flash 2 code region
     memConfig.mem = kXRDC_MemMrc1_0;
     memConfig.baseAddress = 0x01000000U;
     memConfig.endAddress = 0x0103FFFFU;
@@ -98,7 +98,7 @@ void APP_InitDomain(void)
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
-    /* ITCM SRAM, code might be placed here. */
+    // ITCM SRAM, code might be placed here
     memConfig.mem = kXRDC_MemMrc0_1;
     memConfig.baseAddress = 0x08000000U;
     memConfig.endAddress = 0x0800FFFFU;
@@ -107,7 +107,7 @@ void APP_InitDomain(void)
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
-    /* Boot ROM. */
+    // Boot ROM
     memConfig.mem = kXRDC_MemMrc0_2;
     memConfig.baseAddress = 0x08800000U;
     memConfig.endAddress = 0x0880BFFFU;
@@ -116,7 +116,7 @@ void APP_InitDomain(void)
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
-    /* TCM SRAM. */
+    // TCM SRAM
     memConfig.mem = kXRDC_MemMrc1_1;
     memConfig.baseAddress = 0x09000000U;
     memConfig.endAddress = 0x0901FFFFU;
@@ -125,16 +125,16 @@ void APP_InitDomain(void)
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
-    /* CTI, for debugger. */
+    // CTI, for debugger
     memConfig.mem = kXRDC_MemMrc1_2;
     memConfig.baseAddress = 0xF0006000U;
     memConfig.endAddress = 0xF0006FFFU;
     memConfig.codeRegion = kXRDC_MemCodeRegion0;
-    memConfig.policy[0] = kXRDC_AccessFlagsAlt4;
+    memConfig.policy[0] = kXRDC_AccessFlagsNone;
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
-    /* DTCM SRAM, data region. */
+    // DTCM SRAM, data region 1
     memConfig.mem = kXRDC_MemMrc0_3;
     memConfig.baseAddress = 0x20000000U;
     memConfig.endAddress = 0x2001FFFFU;
@@ -143,6 +143,7 @@ void APP_InitDomain(void)
     memConfig.policy[1] = kXRDC_AccessFlagsAlt4;
     XRDC_SetMemAccessConfig(XRDC, &memConfig);
 
+    // DTCM SRAM, data region 2
     memConfig.mem = kXRDC_MemMrc0_4;
     memConfig.baseAddress = 0x20020000U;
     memConfig.endAddress = 0x2003FFFFU;
@@ -200,16 +201,14 @@ void rt_hw_board_init(void)
 
     SEMA42_Init(APP_SEMA42);
     SEMA42_ResetAllGates(APP_SEMA42);
+    SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
 
-    // Boot Core 0 (CM0+)
-    //MU_BootOtherCore(APP_MU, APP_CORE1_BOOT_MODE);
-    MU_HardwareResetOtherCore(MUA, false, true, kMU_CoreBootFromDflashBase);
+    // Boot Core 1 (CM0+)
+    MU_BootOtherCore(APP_MU, APP_CORE1_BOOT_MODE);
+    //MU_HardwareResetOtherCore(MUA, true, true, kMU_CoreBootFromDflashBase);
     
-    /* Wait Core 0 is Boot Up
-    while (BOOT_FLAG != MU_GetFlags(APP_MU))
-    {
-    }
-    */
+    // Wait till Core 1 is Boot Up
+    //while (BOOT_FLAG != MU_GetFlags(APP_MU)) { }
 
     INTMUX_Init(INTMUX0);
     INTMUX_EnableInterrupt(INTMUX0, 0, PORTC_IRQn);

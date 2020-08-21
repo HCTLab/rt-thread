@@ -3,11 +3,12 @@ import os
 # toolchains options
 CROSS_TOOL  ='gcc'
 ARCH        ='arm'
-CPU         ='cortex-m4'
+CPU         ='cortex-m0'
+#CPU         ='cortex-m4'
 
 # core to be use
-#USE_CORE    ='CORE_M0'
-USE_CORE    ='CORE_M4'
+USE_CORE    ='CORE_M0'
+#USE_CORE    ='CORE_M4'
 
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
@@ -39,7 +40,7 @@ if PLATFORM == 'gcc':
     SIZE = PREFIX + 'size'
     OBJDUMP = PREFIX + 'objdump'
     OBJCPY = PREFIX + 'objcopy'
-    DEVICE = ' -mcpu=' + CPU + ' -mthumb -ffunction-sections -Wall'
+    DEVICE = ' -mcpu=' + CPU + ' -ffunction-sections -Wall'
     if USE_CORE == 'CORE_M4':
         DEVICE += ' -mfpu=fpv4-sp-d16 -mfloat-abi=softfp'
     CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH'
@@ -62,5 +63,5 @@ POST_ACTION = 'cd build/' + ARCH + ' && ' + AR + ' x ' + GCC_LIB_PATH + '/libgcc
                                             AR + ' rcs ../../$TARGET *.o && ' + \
               'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET --rename-section .bss=.arm_bss --rename-section .sbss=.arm_sbss --rename-section .data=.arm_data --rename-section .sdata=.arm_sdata && ' + \
                                 OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
-                                AR + ' x $TARGET startup_RV32M1_CM4.o'
+                                AR + ' x $TARGET startup_RV32M1_CM0.o'
 

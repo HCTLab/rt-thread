@@ -14,7 +14,11 @@
 
 int main(int argc, char** argv)
 {
-    rt_kprintf("Hello RT-Thread from RISCV!\n");
+   while(1)
+   { 
+      rt_kprintf("Hello RT-Thread from RISCV!\n");
+      rt_thread_delay( 5 * RT_TICK_PER_SECOND );
+   } //wend
 
-    return 0;
+   return 0;
 }

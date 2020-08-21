@@ -43,6 +43,8 @@ extern void SystemCoreClockUpdate(void);
  */
 void rt_hw_board_init()
 {
+    while(1);
+    
 #ifdef CORE_M4
     /* NVIC Configuration */
 #ifdef  VECT_TAB_RAM
