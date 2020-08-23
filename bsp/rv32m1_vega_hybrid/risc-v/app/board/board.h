@@ -18,6 +18,36 @@ extern unsigned char __heap_start;
 #define RT_HW_HEAP_BEGIN    (void*)&__heap_start
 #define RT_HW_HEAP_END      (void*)(0x20000000 + 0x00030000 - 0x1800)
 
+#define LOGIC_LED_ON 1U
+#define LOGIC_LED_OFF 0U
+#define BOARD_LED1_GPIO GPIOA
+#define BOARD_LED1_GPIO_PIN 24U
+#define BOARD_LED2_GPIO GPIOA
+#define BOARD_LED2_GPIO_PIN 23U
+#define BOARD_LED3_GPIO GPIOA
+#define BOARD_LED3_GPIO_PIN 22U
+
+#define LED1_INIT(output)                                              \
+    GPIO_WritePinOutput(BOARD_LED1_GPIO, BOARD_LED1_GPIO_PIN, output); \
+    BOARD_LED1_GPIO->PDDR |= (1U << BOARD_LED1_GPIO_PIN)                                /*!< Enable target LED1 */
+#define LED1_ON() GPIO_SetPinsOutput(BOARD_LED1_GPIO, 1U << BOARD_LED1_GPIO_PIN)        /*!< Turn on target LED1 */
+#define LED1_OFF() GPIO_ClearPinsOutput(BOARD_LED1_GPIO, 1U << BOARD_LED1_GPIO_PIN)     /*!< Turn off target LED1 */
+#define LED1_TOGGLE() GPIO_TogglePinsOutput(BOARD_LED1_GPIO, 1U << BOARD_LED1_GPIO_PIN) /*!< Toggle on target LED1 */
+
+#define LED2_INIT(output)                                              \
+    GPIO_WritePinOutput(BOARD_LED2_GPIO, BOARD_LED2_GPIO_PIN, output); \
+    BOARD_LED2_GPIO->PDDR |= (1U << BOARD_LED2_GPIO_PIN)                                /*!< Enable target LED2 */
+#define LED2_ON() GPIO_SetPinsOutput(BOARD_LED2_GPIO, 1U << BOARD_LED2_GPIO_PIN)        /*!< Turn on target LED2 */
+#define LED2_OFF() GPIO_ClearPinsOutput(BOARD_LED2_GPIO, 1U << BOARD_LED2_GPIO_PIN)     /*!< Turn off target LED2 */
+#define LED2_TOGGLE() GPIO_TogglePinsOutput(BOARD_LED2_GPIO, 1U << BOARD_LED2_GPIO_PIN) /*!< Toggle on target LED2 */
+
+#define LED3_INIT(output)                                              \
+    GPIO_WritePinOutput(BOARD_LED3_GPIO, BOARD_LED3_GPIO_PIN, output); \
+    BOARD_LED3_GPIO->PDDR |= (1U << BOARD_LED3_GPIO_PIN)                                /*!< Enable target LED3 */
+#define LED3_ON() GPIO_SetPinsOutput(BOARD_LED3_GPIO, 1U << BOARD_LED3_GPIO_PIN)        /*!< Turn on target LED3 */
+#define LED3_OFF() GPIO_ClearPinsOutput(BOARD_LED3_GPIO, 1U << BOARD_LED3_GPIO_PIN)     /*!< Turn off target LED3 */
+#define LED3_TOGGLE() GPIO_TogglePinsOutput(BOARD_LED3_GPIO, 1U << BOARD_LED3_GPIO_PIN) /*!< Toggle on target LED3 */
+
 #define BOARD_USDHC0_BASEADDR USDHC0
 #define BOARD_USDHC_CD_PORT_BASE PORTC
 #define BOARD_USDHC_CD_GPIO_BASE GPIOC

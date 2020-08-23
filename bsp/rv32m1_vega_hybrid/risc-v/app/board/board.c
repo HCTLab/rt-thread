@@ -22,6 +22,8 @@
 #include <fsl_mu.h>
 #include <fsl_xrdc.h>
 #include <fsl_sema42.h>
+#include <fsl_port.h>
+#include <fsl_gpio.h>
 
 // MUA/MUB defined at RV32M1_ri5cy.h
 #define APP_MU                   MUA
@@ -76,10 +78,10 @@ void APP_InitDomain(void)
         periConfig.periph = periphAccessible[i];
         XRDC_SetPeriphAccessConfig(XRDC, &periConfig);
     }
-    
+
     // Configure default memory policy
     XRDC_GetMemAccessDefaultConfig(&memConfig);
-    
+
     // Flash 1 code region
     memConfig.mem = kXRDC_MemMrc0_0;
     memConfig.baseAddress = 0x00000000U;
@@ -186,13 +188,24 @@ const scg_lpfll_config_t g_appScgLpFllConfig_BOARD_BootClockRUN = {
     .trimConfig = NULL,
 };
 
+static void BOARD_InitLedPin(void)
+{
+    const gpio_pin_config_t config = {
+        .pinDirection = kGPIO_DigitalOutput, .outputLogic = 1,
+    };
+
+    GPIO_PinInit(BOARD_LED1_GPIO, BOARD_LED1_GPIO_PIN, &config);
+}
+
 void rt_hw_board_init(void)
 {
     BOARD_InitPins();
     BOARD_BootClockRUN();
+    BOARD_InitLedPin();
+    LED1_INIT(LOGIC_LED_ON);
 
     CLOCK_InitLpFll(&g_appScgLpFllConfig_BOARD_BootClockRUN);
-    
+
     // Small delay (~5 secs) to wait for an external debug TAP connection
     for( int i=0; i<20000000; i++ )  { }
 
@@ -205,10 +218,8 @@ void rt_hw_board_init(void)
 
     // Boot Core 1 (CM0+)
     MU_BootOtherCore(APP_MU, APP_CORE1_BOOT_MODE);
-    //MU_HardwareResetOtherCore(MUA, true, true, kMU_CoreBootFromDflashBase);
-    
     // Wait till Core 1 is Boot Up
-    //while (BOOT_FLAG != MU_GetFlags(APP_MU)) { }
+    while (BOOT_FLAG != MU_GetFlags(APP_MU)) { }
 
     INTMUX_Init(INTMUX0);
     INTMUX_EnableInterrupt(INTMUX0, 0, PORTC_IRQn);
