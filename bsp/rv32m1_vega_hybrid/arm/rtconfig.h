@@ -44,8 +44,8 @@
 
 /* RT-Thread Components */
 
-//#define RT_USING_COMPONENTS_INIT     
-//#define RT_USING_USER_MAIN           
+//#define RT_USING_COMPONENTS_INIT
+//#define RT_USING_USER_MAIN
 #define RT_MAIN_THREAD_STACK_SIZE 2048
 #define RT_MAIN_THREAD_PRIORITY 10
 
@@ -75,7 +75,7 @@
 #define DFS_FILESYSTEMS_MAX 4
 #define DFS_FILESYSTEM_TYPES_MAX 4
 #define DFS_FD_MAX 16
-#define RT_USING_DFS_ELMFAT
+//#define RT_USING_DFS_ELMFAT
 
 /* elm-chan's FatFs, Generic FAT Filesystem Module */
 

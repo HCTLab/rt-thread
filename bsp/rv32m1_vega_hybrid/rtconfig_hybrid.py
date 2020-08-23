@@ -37,7 +37,7 @@ if PLATFORM == 'gcc':
     AFLAGS = ''
     LINK_SCRIPT = 'link_hybrid.lds'
     TARGET_LIBS = 'rtthread.arm.lib rtthread.risc-v.lib'
-    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T %s startup_RV32M1_CM0.o startup_RV32M1_ri5cy.o --start-group %s --end-group ' % (LINK_SCRIPT, TARGET_LIBS)
+    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T %s startup_RV32M1_cm0.o startup_RV32M1_ri5cy.o --start-group %s --end-group ' % (LINK_SCRIPT, TARGET_LIBS)
     LIBS = ''
 
     CPATH = ''
@@ -52,3 +52,4 @@ if PLATFORM == 'gcc':
     CXXFLAGS = CFLAGS
 
 POST_ACTION = OBJCPY + ' -O binary $TARGET hybrid.bin\n' + SIZE + ' $TARGET \n'
+#POST_ACTION = ''

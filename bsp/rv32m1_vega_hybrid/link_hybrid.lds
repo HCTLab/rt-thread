@@ -4,6 +4,7 @@ ARM_STACK_SIZE = 0x200;
 /* Specify the memory areas */
 MEMORY
 {
+  m_vector_arm          (RX)  : ORIGIN = 0x01000000, LENGTH = 0x00040000
   m_vector_riscv        (RX)  : ORIGIN = 0x000FFF00, LENGTH = 0x00000100
   m_text                (RX)  : ORIGIN = 0x00000000, LENGTH = 0x000FFF00
   m_data                (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00030000 - 0x1800
@@ -21,12 +22,14 @@ SECTIONS
   .vectors_arm :
   {
     arm___VECTOR_TABLE = .;
+    KEEP(*(.isr_vector))
     KEEP(*(.interrupt_vector))
-  } > m_text
+  } > m_vector_arm
 
   /* The program code and other data goes into internal flash */
   .text :
   {
+    . += (1024 * 4);         /* Uncomment when M0/ZERO_RISCY are enabled */
     . = ALIGN(4);
     KEEP(*(.startup))
     . = ALIGN(4);
@@ -201,6 +204,7 @@ SECTIONS
     . = . + ARM_STACK_SIZE;
     . = ALIGN(4);
     arm__estack = .;
+    arm___StackTop = .;
   } > m_data
 
   .riscv_stack :
@@ -208,6 +212,7 @@ SECTIONS
     . = ALIGN(8);
     riscv___StackLimit = .;
     . += RISCV_STACK_SIZE;
+    . = ALIGN(4);
     riscv___StackTop = .;
   } > m_data
 
