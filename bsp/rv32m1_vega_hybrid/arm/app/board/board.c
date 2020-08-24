@@ -38,17 +38,22 @@
  * Code
  ******************************************************************************/
 
-/* Initialize debug console. */
-/*
-void BOARD_InitDebugConsole(void)
+void LPIT1_IRQHandler(void)
 {
-    CLOCK_SetIpSrc(kCLOCK_Lpuart0, kCLOCK_IpSrcFircAsync);
+    rt_tick_increase();
 
-    uint32_t uartClkSrcFreq = BOARD_DEBUG_UART_CLK_FREQ;
-
-    DbgConsole_Init(BOARD_DEBUG_UART_BASEADDR, BOARD_DEBUG_UART_BAUDRATE, BOARD_DEBUG_UART_TYPE, uartClkSrcFreq);
+    SystemClearSystickFlag();
 }
-*/
+
+int rt_hw_systick_init(void)
+{
+    CLOCK_SetIpSrc(kCLOCK_Lpit1, kCLOCK_IpSrcFircAsync);
+
+    SystemSetupSystick (RT_TICK_PER_SECOND, 0);
+    SystemClearSystickFlag();
+
+    return 0;
+}
 
 void rt_hw_board_init(void)
 {
@@ -61,27 +66,25 @@ void rt_hw_board_init(void)
     LED1_OFF();
     for( int i=0; i<10000000; i++ )  { }
     LED1_ON();
-    while(1) { }
+    //while(1) { }
 
     //SEMA42_Init(APP_SEMA42);
     //SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
 
-    /*
     // initialize hardware interrupt
-    rt_hw_uart_init();
-    rt_hw_systick_init();
+    //rt_hw_uart_init();
+    rt_hw_systick_init();  // Core 0 uses LPIT0 and this core uses LPIT1
 
 #ifdef RT_USING_CONSOLE
-    rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
+    //rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 #endif
 
 #ifdef RT_USING_HEAP
     // initialize memory system
-    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+    //rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
 #endif
 
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
 #endif
-    */
 }

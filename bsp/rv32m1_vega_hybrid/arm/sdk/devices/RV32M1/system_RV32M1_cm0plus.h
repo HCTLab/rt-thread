@@ -73,6 +73,21 @@ extern "C" {
 #define DEFAULT_SYSTEM_CLOCK           48000000u           /* Default System clock value */
 #endif
 
+/* ----------------------------------------------------------------------------
+   -- SDK Compatibility
+   ---------------------------------------------------------------------------- */
+
+/*!
+ * @addtogroup SDK_Compatibility_Symbols SDK Compatibility
+ * @{
+ */
+
+#define EVENT_UNIT EVENT1
+#define INTMUX INTMUX1
+
+/*!
+ * @}
+ */ /* end of group SDK_Compatibility_Symbols */
 
 
 /**
@@ -103,6 +118,35 @@ void SystemInit (void);
  * the current core clock.
  */
 void SystemCoreClockUpdate (void);
+
+/**
+ * @brief SystemInit function hook.
+ *
+ * This weak function allows to call specific initialization code during the
+ * SystemInit() execution.This can be used when an application specific code needs
+ * to be called as close to the reset entry as possible (for example the Multicore
+ * Manager MCMGR_EarlyInit() function call).
+ * NOTE: No global r/w variables can be used in this hook function because the
+ * initialization of these variables happens after this function.
+ */
+void SystemInitHook (void);
+
+/**
+ * @brief Setup systick for RTOS system.
+ *
+ * @param tickRateHz Tick number per second
+ * @param intPriority IRQ interrupt priority (the smaller, the higher priority)
+ */
+void SystemSetupSystick (uint32_t tickRateHz, uint32_t intPriority);
+
+/**
+ * @brief Clear systick flag status so that next tick interrupt may occur.
+ */
+void SystemClearSystickFlag (void);
+
+
+#define SysTick_Handler LPIT0_IRQHandler
+
 
 #ifdef __cplusplus
 }

@@ -18,6 +18,11 @@
 /*! @brief The board name */
 #define BOARD_NAME "RV32M1-VEGA"
 
+extern unsigned char __heap_start;
+
+#define RT_HW_HEAP_BEGIN    (void*)&__heap_start
+#define RT_HW_HEAP_END      (void*)(0x20000000 + 0x00030000 - 0x1800)
+
 /* The UART to use for debug messages. */
 #define BOARD_DEBUG_UART_TYPE DEBUG_CONSOLE_DEVICE_TYPE_LPUART
 #define BOARD_DEBUG_UART_BAUDRATE 115200U
@@ -166,6 +171,7 @@
 #define BOARD_SPI_FLASH_SO_PORT         PORTB
 #define BOARD_SPI_FLASH_SO_GPIO         GPIOB
 #define BOARD_SPI_FLASH_SO_GPIO_PIN     24U
+
 #if defined(__cplusplus)
 extern "C" {
 #endif /* __cplusplus */
@@ -174,7 +180,7 @@ extern "C" {
  * API
  ******************************************************************************/
 
-void BOARD_InitDebugConsole(void);
+void rt_hw_board_init(void);
 
 #if defined(__cplusplus)
 }

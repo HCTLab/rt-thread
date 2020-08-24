@@ -12,11 +12,14 @@
 #include <stdlib.h>
 #include <rtthread.h>
 
+#include "fsl_lpuart.h"
+
 int main(int argc, char** argv)
 {
    while(1)
    {
-      rt_kprintf("Hello RT-Thread from ARM!\n");
+      //rt_kprintf("Hello RT-Thread from ARM!\n");
+      LPUART_WriteByte(LPUART0, '.');
       rt_thread_delay( 5 * RT_TICK_PER_SECOND );
    } //wend
 
