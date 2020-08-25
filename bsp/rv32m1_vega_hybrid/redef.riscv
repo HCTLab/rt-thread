@@ -1,0 +1,9 @@
+riscv___DATA_ROM            __DATA_ROM
+riscv___data_start__        __data_start__
+riscv___data_end__          __data_end__
+riscv___bss_start__         __bss_start__
+riscv___bss_end__           __bss_end__
+riscv___heap_start          __heap_start
+riscv_lfree                 lfree
+riscv_used_mem              used_mem
+riscv_max_mem               max_mem

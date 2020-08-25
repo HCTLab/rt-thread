@@ -84,8 +84,7 @@ void rt_hw_board_init(void)
 #endif
 
 #ifdef RT_USING_HEAP
-    // initialize memory system
-    //rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 0);  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
 #endif
 
 #ifdef RT_USING_COMPONENTS_INIT

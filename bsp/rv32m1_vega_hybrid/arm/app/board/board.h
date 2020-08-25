@@ -23,15 +23,6 @@ extern unsigned char __heap_start;
 #define RT_HW_HEAP_BEGIN    (void*)&__heap_start
 #define RT_HW_HEAP_END      (void*)(0x20000000 + 0x00030000 - 0x1800)
 
-/* The UART to use for debug messages. */
-#define BOARD_DEBUG_UART_TYPE DEBUG_CONSOLE_DEVICE_TYPE_LPUART
-#define BOARD_DEBUG_UART_BAUDRATE 115200U
-#define BOARD_DEBUG_UART_BASEADDR (uint32_t) LPUART0
-#define BOARD_DEBUG_UART_INSTANCE    0U
-#define BOARD_DEBUG_UART_CLK_FREQ CLOCK_GetIpFreq(kCLOCK_Lpuart0)
-#define BOARD_UART_IRQ LPUART0_IRQn
-#define BOARD_UART_IRQ_HANDLER LPUART0_IRQHandler
-
 /* Definitions for eRPC MU transport layer */
 #if defined(FSL_FEATURE_MU_SIDE_A)
 #define MU_BASE MUA
@@ -148,7 +139,7 @@ extern unsigned char __heap_start;
 #define JTAG_TCLK_PORT         PORTA
 #define JTAG_TDI_PORT          PORTA
 #define JTAG_TDO_PORT          PORTA
-#define JTAG_TMS_PORT          PORTA 
+#define JTAG_TMS_PORT          PORTA
 
 #define NMI_GPIO               GPIOA
 #define JTAG_TCLK_GPIO         GPIOA

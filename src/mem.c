@@ -128,13 +128,13 @@ static struct heap_mem *heap_end;
 #define MIN_SIZE_ALIGNED     RT_ALIGN(MIN_SIZE, RT_ALIGN_SIZE)
 #define SIZEOF_STRUCT_MEM    RT_ALIGN(sizeof(struct heap_mem), RT_ALIGN_SIZE)
 
-static struct heap_mem *lfree;   /* pointer to the lowest free block */
+       struct heap_mem *lfree;   /* pointer to the lowest free block */
 
 static struct rt_semaphore heap_sem;
 static rt_size_t mem_size_aligned;
 
 #ifdef RT_MEM_STATS
-static rt_size_t used_mem, max_mem;
+       rt_size_t used_mem, max_mem;
 #endif
 #ifdef RT_USING_MEMTRACE
 rt_inline void rt_mem_setname(struct heap_mem *mem, const char *name)
@@ -201,7 +201,7 @@ static void plug_holes(struct heap_mem *mem)
  * @param begin_addr the beginning address of system heap memory.
  * @param end_addr the end address of system heap memory.
  */
-void rt_system_heap_init(void *begin_addr, void *end_addr)
+void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)
 {
     struct heap_mem *mem;
     rt_ubase_t begin_align = RT_ALIGN((rt_ubase_t)begin_addr, RT_ALIGN_SIZE);
@@ -253,7 +253,10 @@ void rt_system_heap_init(void *begin_addr, void *end_addr)
     rt_sem_init(&heap_sem, "heap", 1, RT_IPC_FLAG_FIFO);
 
     /* initialize the lowest-free pointer to the start of the heap */
-    lfree = (struct heap_mem *)heap_ptr;
+    if( first_core )
+    {
+        lfree = (struct heap_mem *)heap_ptr;
+    }
 }
 
 /**
@@ -489,7 +492,7 @@ void *rt_realloc(void *rmem, rt_size_t newsize)
         {
             ((struct heap_mem *)&heap_ptr[mem2->next])->prev = ptr2;
         }
-        
+
         if (mem2 < lfree)
         {
             /* the splited struct is now the lowest */

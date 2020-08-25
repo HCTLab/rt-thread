@@ -598,7 +598,7 @@ RTM_EXPORT(rt_memheap_free);
 #ifdef RT_USING_MEMHEAP_AS_HEAP
 static struct rt_memheap _heap;
 
-void rt_system_heap_init(void *begin_addr, void *end_addr)
+void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)
 {
     /* initialize a default heap in the system */
     rt_memheap_init(&_heap,

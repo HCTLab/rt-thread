@@ -136,6 +136,7 @@ Reset_Handler:
  *      __data_start__/__data_end__: RAM address range that data should be
  *      copied to. Both must be aligned to 4 bytes boundary.  */
 
+/* Done by boot core
     ldr    r1, =__DATA_ROM
     ldr    r2, =__data_start__
     ldr    r3, =__data_end__
@@ -149,6 +150,7 @@ Reset_Handler:
     str    r0, [r2,r3]
     bgt    .LC1
 .LC0:
+*/
 
 #ifdef __STARTUP_CLEAR_BSS
 /*     This part of work usually is done in C library startup code. Otherwise,
@@ -159,6 +161,8 @@ Reset_Handler:
  *      __bss_start__: start of BSS section. Must align to 4
  *      __bss_end__: end of BSS section. Must align to 4
  */
+
+/* Done by boot core
     ldr r1, =__bss_start__
     ldr r2, =__bss_end__
 
@@ -171,6 +175,7 @@ Reset_Handler:
     subs    r2, 4
     bge .LC2
 .LC3:
+*/
 #endif
     cpsie   i               /* Unmask interrupts */
     ldr   r0,=entry

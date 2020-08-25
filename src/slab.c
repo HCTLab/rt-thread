@@ -341,7 +341,7 @@ static void rt_page_init(void *addr, rt_size_t npages)
  * @param begin_addr the beginning address of system page
  * @param end_addr the end address of system page
  */
-void rt_system_heap_init(void *begin_addr, void *end_addr)
+void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)
 {
     rt_uint32_t limsize, npages;
 

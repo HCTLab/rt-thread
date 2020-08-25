@@ -229,13 +229,11 @@ void rt_hw_board_init(void)
     rt_hw_systick_init();
 
 #ifdef RT_USING_CONSOLE
-    /* set console device */
     rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 #endif /* RT_USING_CONSOLE */
 
 #ifdef RT_USING_HEAP
-    /* initialize memory system */
-    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END);
+    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 1);
 #endif
 
 #ifdef RT_USING_COMPONENTS_INIT

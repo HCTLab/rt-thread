@@ -1,5 +1,5 @@
 RISCV_STACK_SIZE = 0x1000;
-ARM_STACK_SIZE = 0x200;
+ARM_STACK_SIZE = 0x400;
 
 /* Specify the memory areas */
 MEMORY
@@ -140,51 +140,30 @@ SECTIONS
 
   arm_text_end = ORIGIN(m_text) + LENGTH(m_text);
   riscv_text_end = ORIGIN(m_text) + LENGTH(m_text);
-
   arm___exidx_end = .;
-  arm___DATA_ROM = .;
 
-  .arm_data : AT(arm___DATA_ROM)
+  __DATA_ROM = .;
+
+  .data : AT(__DATA_ROM)
   {
     . = ALIGN(4);
-    PROVIDE(arm___dtors_start__ = .);
-    KEEP(*(SORT(.arm_dtors.*)))
-    KEEP(*(.arm_dtors))
-    PROVIDE(arm___dtors_end__ = .);
+    PROVIDE(__dtors_start__ = .);
+    KEEP(*(SORT(.dtors.*)))
+    KEEP(*(.dtors))
+    PROVIDE(__dtors_end__ = .);
 
     /* This is used by the startup in order to initialize the .data secion */
     . = ALIGN(4);
-    arm___DATA_RAM = .;
-    arm___data_start__ = .;      /* create a global symbol at data start */
-    arm__sdata = . ;
+    __DATA_RAM = .;
+    __data_start__ = .;      /* create a global symbol at data start */
+    _sdata = . ;
 
-    *(.arm_data)                 /* .data sections */
-    *(.arm_data*)                /* .data* sections */
-    *(.arm_gnu.linkonce.d*)
-
-    . = ALIGN(4);
-    /* This is used by the startup in order to initialize the .data secion */
-    arm___data_end__ = .;        /* define a global symbol at data end */
-    arm__edata = .;
-  } > m_data
-
-  arm___DATA_END = arm___DATA_ROM + (arm___data_end__ - arm___data_start__);
-
-  riscv___DATA_ROM = arm___DATA_END;    /* Symbol is used by RISCV startup for data initialization */
-
-  .riscv_data :
-  {
-    /* This is used by the startup in order to initialize the .data secion */
-    . = ALIGN(4);
-    riscv___DATA_RAM = .;
-    riscv___data_start__ = .;      /* create a global symbol at data start */
-    riscv__sdata = . ;
-
-    *(.riscv_data)                 /* .data sections */
-    *(.riscv_data*)                /* .data* sections */
-    *(.riscv_gnu.linkonce.d*)
-    *(.riscv_sdata .riscv_sdata.*)
-    *(.riscv_heapsram*)            /* This is only for the pulpino official test code. */
+    *(.data)                 /* .data sections */
+    *(.data*)                /* .data* sections */
+    *(.gnu.linkonce.d*)
+    *(.gnu.linkonce.d*)
+    *(.sdata .sdata.*)
+    *(.heapsram*)            /* This is only for the pulpino official test code. */
 
     __noncachedata_start__ = .;   /* create a global symbol at ncache data start */
     *(NonCacheable)
@@ -192,11 +171,11 @@ SECTIONS
 
     KEEP(*(.jcr*))
     . = ALIGN(4);
-    riscv___data_end__ = .;        /* define a global symbol at data end */
-    riscv__edata = .;
+    __data_end__ = .;        /* define a global symbol at data end */
+    _edata = .;
   } > m_data
 
-  riscv___DATA_END = riscv___DATA_ROM + (riscv___data_end__ - riscv___data_start__);
+  __DATA_END = __DATA_ROM + (__data_end__ - __data_start__);
 
   .arm_stack :
   {
@@ -219,55 +198,35 @@ SECTIONS
   /* Initializes stack on the end of block */
   PROVIDE(riscv___stack = riscv___StackTop);
 
-  /* Uninitialized RISCV data section */
-  .riscv_bss :
+  /* Uninitialized data section */
+  .bss :
   {
     /* This is used by the startup in order to initialize the .bss section */
     . = ALIGN(4);
-    riscv___START_BSS = .;
-    riscv___bss_start__ = .;
+    __START_BSS = .;
+    __bss_start__ = .;
 
-    *(.riscv_bss)
-    *(.riscv_bss*)
-    *(.riscv_sbss)
-    *(.riscv_sbss*)
+    *(.bss)
+    *(.bss*)
+    *(.sbss)
+    *(.sbss*)
 
     /* Include COMMON section (generated dynamically by linker) */
     *(COMMON)
 
     . = ALIGN(4);
-    riscv___bss_end__ = .;
-    riscv___END_BSS = .;
-  } > m_data
+    __bss_end__ = .;
+    __END_BSS = .;
 
-  /* End of RISCV uninitalized data segment */
-  riscv__end = .;
-  PROVIDE(riscv_end = .);
-
-  .arm_bss :
-  {
-    /* This is used by the startup in order to initialize the .bss secion */
-    . = ALIGN(4);
-    arm__sbss = .;
-    arm___START_BSS = .;
-    arm___bss_start = .;
-
-    *(.arm_bss)
-    *(.arm_bss.*)
-    *(.arm_sbss)
-    *(.arm_sbss*)
-
-    . = ALIGN(4);
-    arm__ebss = .;
-    arm___bss_end = .;
-    arm___END_BSS = .;
     *(.arm_bss.init)
   } > m_data
 
-  arm__end = .;
+  /* End of uninitalized data segment */
+  _end = .;
+  PROVIDE(end = .);
 
-  arm___heap_start = .;
-  riscv___heap_start = .;
+  . = ALIGN(0x100);
+  __heap_start = .;
 
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }

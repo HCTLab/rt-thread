@@ -1,0 +1,4 @@
+arm___heap_start        __heap_start
+arm_lfree               lfree
+arm_used_mem            used_mem
+arm_max_mem             max_mem

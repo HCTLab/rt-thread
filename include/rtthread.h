@@ -247,7 +247,7 @@ void rt_mp_free_sethook(void (*hook)(struct rt_mempool *mp, void *block));
 /*
  * heap memory interface
  */
-void rt_system_heap_init(void *begin_addr, void *end_addr);
+void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core);
 
 void *rt_malloc(rt_size_t nbytes);
 void rt_free(void *ptr);
