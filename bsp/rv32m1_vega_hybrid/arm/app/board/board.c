@@ -22,6 +22,7 @@
 #include <fsl_sema42.h>
 #include <fsl_port.h>
 #include <fsl_gpio.h>
+#include <fsl_lpuart.h>
 
 #define APP_MU                  MUB
 #define APP_SEMA42              SEMA420
@@ -66,17 +67,20 @@ void rt_hw_board_init(void)
     LED1_OFF();
     for( int i=0; i<10000000; i++ )  { }
     LED1_ON();
-    //while(1) { }
+
+    // Send a character through core 0 UART
+    LPUART_WriteByte(LPUART0, '-');
+    while (!(LPUART_GetStatusFlags(LPUART0) & kLPUART_TxDataRegEmptyFlag));
 
     //SEMA42_Init(APP_SEMA42);
     //SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
 
     // initialize hardware interrupt
-    //rt_hw_uart_init();
+    rt_hw_uart_init();
     rt_hw_systick_init();  // Core 0 uses LPIT0 and this core uses LPIT1
 
 #ifdef RT_USING_CONSOLE
-    //rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
+    rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 #endif
 
 #ifdef RT_USING_HEAP
@@ -87,4 +91,7 @@ void rt_hw_board_init(void)
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
 #endif
+
+    LPUART_WriteByte(LPUART0, '+');
+    while (!(LPUART_GetStatusFlags(LPUART0) & kLPUART_TxDataRegEmptyFlag));
 }

@@ -20,7 +20,7 @@
 **     Copyright 2016 Freescale Semiconductor, Inc.
 **     Copyright 2016-2016 NXP
 **     All rights reserved.
-**     
+**
 **     SPDX-License-Identifier: BSD-3-Clause
 **
 **     http:                 www.nxp.com
@@ -114,44 +114,44 @@ __attribute__ ((weak)) void SystemInitHook (void) {
   /* Void implementation of the weak function. */
 }
 
-/* Use LIPT0 channel 0 for systick. */
+/* Use LIPT1 channel 0 for systick. */
 #define SYSTICK_LPIT LPIT1
 #define SYSTICK_LPIT_CH 0
 #define SYSTICK_LPIT_IRQn LPIT1_IRQn
 
-/* Leverage LPIT0 to provide Systick */
+/* Leverage LPIT1 to provide Systick */
 void SystemSetupSystick(uint32_t tickRateHz, uint32_t intPriority)
 {
-    /* Init pit module */
+    // Init pit module
     CLOCK_EnableClock(kCLOCK_Lpit1);
 
-    /* Reset the timer channels and registers except the MCR register */
+    // Reset the timer channels and registers except the MCR register
     SYSTICK_LPIT->MCR |= LPIT_MCR_SW_RST_MASK;
     SYSTICK_LPIT->MCR &= ~LPIT_MCR_SW_RST_MASK;
 
-    /* Setup timer operation in debug and doze modes and enable the module */
+    // Setup timer operation in debug and doze modes and enable the module
     SYSTICK_LPIT->MCR = LPIT_MCR_DBG_EN_MASK | LPIT_MCR_DOZE_EN_MASK | LPIT_MCR_M_CEN_MASK;
 
-    /* Set timer period for channel 0 */
-    SYSTICK_LPIT->CHANNEL[SYSTICK_LPIT_CH].TVAL = (CLOCK_GetIpFreq(kCLOCK_Lpit0) / tickRateHz) - 1;
+    // Set timer period for channel 0
+    SYSTICK_LPIT->CHANNEL[SYSTICK_LPIT_CH].TVAL = (CLOCK_GetIpFreq(kCLOCK_Lpit1) / tickRateHz) - 1;
 
-    /* Enable timer interrupts for channel 0 */
+    // Enable timer interrupts for channel 0
     SYSTICK_LPIT->MIER |= (1U << SYSTICK_LPIT_CH);
 
-    /* Set interrupt priority. */
+    // Set interrupt priority.
     NVIC_SetPriority(LPIT1_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
     NVIC_EnableIRQ(LPIT1_IRQn);
 
-    /* set pend exception priority */
+    // set pend exception priority
     NVIC_SetPriority(PendSV_IRQn, (1 << __NVIC_PRIO_BITS) - 1);
 
-    /* Start channel 0 */
+    // Start channel 0
     SYSTICK_LPIT->SETTEN |= (LPIT_SETTEN_SET_T_EN_0_MASK << SYSTICK_LPIT_CH);
 }
 
 void SystemClearSystickFlag(void)
 {
-    /* Channel 0. */
+    // Channel 0.
     SYSTICK_LPIT->MSR = (1U << SYSTICK_LPIT_CH);
 }
 

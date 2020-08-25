@@ -3,7 +3,7 @@ import os
 # toolchains options
 CROSS_TOOL  ='gcc'
 ARCH        ='arm'
-CPU         ='cortex-m0'
+CPU         ='cortex-m0plus'
 #CPU         ='cortex-m4'
 
 # core to be use
@@ -23,7 +23,8 @@ else:
 if os.getenv('RTT_EXEC_PATH_ARM'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH_ARM')
 
-GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/8.2.0'
+#GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/x.x.0'
+GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/9.3.1/thumb/v6-m/nofp'
 
 BUILD = 'debug'
 
@@ -41,10 +42,12 @@ if PLATFORM == 'gcc':
     OBJDUMP = PREFIX + 'objdump'
     OBJCPY = PREFIX + 'objcopy'
     DEVICE = ' -mcpu=' + CPU + ' -mthumb -ffunction-sections -Wall'
+    #DEVICE = ' -mcpu=' + CPU + ' -ffunction-sections -Wall'
     if USE_CORE == 'CORE_M4':
         DEVICE += ' -mfpu=fpv4-sp-d16 -mfloat-abi=softfp'
     CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH'
     AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb -I $BSP_ROOT -I $ARCH'
+    #AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -I $BSP_ROOT -I $ARCH'
     LFLAGS = ''
     LIBS = ''
 
@@ -52,7 +55,7 @@ if PLATFORM == 'gcc':
     LPATH = ''
 
     if BUILD == 'debug':
-        CFLAGS += ' -O0 -gdwarf-2'
+        CFLAGS += ' -O0 -gdwarf-2 -DNDEBUG'
         AFLAGS += ' -gdwarf-2'
     else:
         CFLAGS += ' -O2'

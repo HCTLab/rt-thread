@@ -6,7 +6,7 @@
  * Change Logs:
  * Date           Author            Notes
  * 2018/10/28     Bernard           Unify UART driver for FSL library.
- * 2019/09/07     niannianyouyu     Add the driver of UART1 
+ * 2019/09/07     niannianyouyu     Add the driver of UART1
  */
 
 #include <rthw.h>
@@ -73,14 +73,14 @@ static const struct fsl_uart uarts[] =
         &serial0,
         "uart0",
     },
-    #ifdef BSP_USING_UART1
+#endif
+#ifdef BSP_USING_UART1
     {
         LPUART1,
         LPUART1_IRQn,
         &serial1,
         "uart1",
     },
-#endif
 #endif
 };
 
@@ -126,7 +126,7 @@ static rt_err_t uart_configure(struct rt_serial_device *serial, struct serial_co
 
     switch (cfg->data_bits)
     {
-#if defined(FSL_FEATURE_LPUART_HAS_7BIT_DATA_SUPPORT) && FSL_FEATURE_LPUART_HAS_7BIT_DATA_SUPPORT        
+#if defined(FSL_FEATURE_LPUART_HAS_7BIT_DATA_SUPPORT) && FSL_FEATURE_LPUART_HAS_7BIT_DATA_SUPPORT
     case DATA_BITS_7:
         config.dataBitsCount = kLPUART_SevenDataBits;
         break;
@@ -168,7 +168,7 @@ static rt_err_t uart_configure(struct rt_serial_device *serial, struct serial_co
     uint32_t uartClkSrcFreq0 = CLOCK_GetIpFreq(kCLOCK_Lpuart0);
     LPUART_Init(uart->uart_base, &config, uartClkSrcFreq0);
     LPUART_EnableInterrupts(uart->uart_base, kLPUART_RxDataRegFullInterruptEnable);
-    
+
     CLOCK_SetIpSrc(kCLOCK_Lpuart1, kCLOCK_IpSrcFircAsync);
 
     uint32_t uartClkSrcFreq1 = CLOCK_GetIpFreq(kCLOCK_Lpuart1);

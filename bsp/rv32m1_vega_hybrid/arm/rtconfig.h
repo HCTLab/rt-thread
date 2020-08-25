@@ -38,7 +38,7 @@
 #define RT_USING_DEVICE
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
-#define RT_CONSOLE_DEVICE_NAME "uart0"
+#define RT_CONSOLE_DEVICE_NAME "uart1"
 #define RT_VER_NUM 0x40000
 #define ARCH_ARM
 
@@ -214,6 +214,6 @@
 
 //#define SOC_VEGA_RI5CY
 //#define BOARD_X_FRDM_VEGA
-#define BSP_USING_UART0
+#define BSP_USING_UART1
 
 #endif
