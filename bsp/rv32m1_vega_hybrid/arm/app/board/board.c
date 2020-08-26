@@ -69,13 +69,9 @@ void rt_hw_board_init(void)
     LED1_ON();
 
     // Send a character through core 0 UART
-    LPUART_WriteByte(LPUART0, '-');
-    while (!(LPUART_GetStatusFlags(LPUART0) & kLPUART_TxDataRegEmptyFlag));
+    //LPUART_WriteByte(LPUART0, '.');
 
-    //SEMA42_Init(APP_SEMA42);
-    //SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
-
-    // initialize hardware interrupt
+    // Initialize hardware interrupt
     rt_hw_uart_init();
     rt_hw_systick_init();  // Core 0 uses LPIT0 and this core uses LPIT1
 
@@ -90,7 +86,4 @@ void rt_hw_board_init(void)
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
 #endif
-
-    LPUART_WriteByte(LPUART0, '+');
-    while (!(LPUART_GetStatusFlags(LPUART0) & kLPUART_TxDataRegEmptyFlag));
 }

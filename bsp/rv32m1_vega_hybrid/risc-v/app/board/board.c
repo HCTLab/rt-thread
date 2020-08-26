@@ -214,7 +214,6 @@ void rt_hw_board_init(void)
 
     SEMA42_Init(APP_SEMA42);
     SEMA42_ResetAllGates(APP_SEMA42);
-    SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
 
     // Boot Core 1 (CM0+)
     MU_BootOtherCore(APP_MU, APP_CORE1_BOOT_MODE);
