@@ -144,13 +144,9 @@ def GenCconfigFile(env, arch, BuildOptions):
                 # add HAVE_CCONFIG_H definition
                 env.AppendUnique(CPPDEFINES = ['HAVE_CCONFIG_H'])
 
-def PrepareBuilding(env, root_directory, has_libcpu=False, remove_components = []):
-    import rtconfig
+def AddOptions():
 
     global BuildOptions
-    global Projects
-    global Env
-    global Rtt_Root
 
     # ===== Add option to SCons =====
     AddOption('--dist',
@@ -402,12 +398,12 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
         genconfig()
         exit(0)
 
-	GetOption(stackanalysis)
-		from WCS import ThreadStackStaticAnalysis
+    if GetOption('stackanalysis'):
+        from WCS import ThreadStackStaticAnalysis
         ThreadStackStaticAnalysis(Env)
         exit(0)
-        
-    if GetOption('pyconfig_silent'):    
+
+    if GetOption('pyconfig_silent'):
         from menuconfig import guiconfig_silent
 
         guiconfig_silent(Rtt_Root)
@@ -449,23 +445,26 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
     # board build script
     objs = SConscript('SConscript', variant_dir=bsp_vdir, duplicate=0)
     # include kernel
-    objs.extend(SConscript(Rtt_Root + '/src/SConscript', variant_dir=kernel_vdir + '/src', duplicate=0))
+    if not has_kernel:
+        objs.extend(SConscript(Rtt_Root + '/src/SConscript', variant_dir=kernel_vdir + '/src', duplicate=0))
     # include libcpu
     if not has_libcpu:
         objs.extend(SConscript(Rtt_Root + '/libcpu/SConscript',
                     variant_dir=kernel_vdir + '/libcpu', duplicate=0))
 
     # include components
-    objs.extend(SConscript(Rtt_Root + '/components/SConscript',
-                           variant_dir=kernel_vdir + '/components',
-                           duplicate=0,
-                           exports='remove_components'))
+    if not has_components:
+        objs.extend(SConscript(Rtt_Root + '/components/SConscript',
+                               variant_dir=kernel_vdir + '/components',
+                               duplicate=0,
+                               exports='remove_components'))
+
     # include testcases
-    if os.path.isfile(os.path.join(Rtt_Root, 'examples/utest/testcases/SConscript')):
-        objs.extend(SConscript(Rtt_Root + '/examples/utest/testcases/SConscript',
-                           variant_dir=kernel_vdir + '/examples/utest/testcases',
-                           duplicate=0))
-                           
+    #if os.path.isfile(os.path.join(Rtt_Root, 'examples/utest/testcases/SConscript')):
+    #    objs.extend(SConscript(Rtt_Root + '/examples/utest/testcases/SConscript',
+    #                      variant_dir=kernel_vdir + '/examples/utest/testcases',
+    #                      duplicate=0))
+
     #print("Depends: ")
     #for o in objs:
     #    print( o.name + ", ")
@@ -897,7 +896,7 @@ def GenTargetProject(program = None):
     if GetOption('target') == 'eclipse':
         from eclipse import TargetEclipse
         TargetEclipse(Env, GetOption('reset-project-config'), GetOption('project-name'))
-        
+
     if GetOption('target') == 'codelite':
         from codelite import TargetCodelite
         TargetCodelite(Projects, program)

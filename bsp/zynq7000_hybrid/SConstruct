@@ -1,0 +1,75 @@
+import os
+import sys
+# import rtconfig
+
+if os.path.isdir('./rt-thread'):
+    RTT_ROOT = os.path.normpath(os.path.join(os.getcwd(), 'rt-thread/'))
+elif os.getenv('RTT_ROOT'):
+    RTT_ROOT = os.getenv('RTT_ROOT')
+else:
+    RTT_ROOT = os.path.normpath(os.getcwd() + '/../..')
+
+sys.path = sys.path + [os.path.join(RTT_ROOT, 'tools')]
+from building import *
+
+TARGET_ARM = 'rtthread-zynq7000.arm.elf'
+TARGET_RISCV = 'rtthread-zynq7000.riscv.elf'
+
+AddOptions()
+
+# ------------------------ ARM architecture ------------------------
+
+rtconfig = __import__('rtconfig_arm')
+ARCH=rtconfig.ARCH
+
+env_arm = Environment(tools = ['mingw'],
+              ARCH = rtconfig.ARCH,
+              AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
+              CC = rtconfig.CC, CCFLAGS = rtconfig.CFLAGS,
+              AR = rtconfig.AR, ARFLAGS = '-rc',
+              LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
+env_arm.PrependENVPath('PATH', rtconfig.EXEC_PATH)
+
+Export('RTT_ROOT')
+Export('rtconfig')
+Export('ARCH')
+
+env_arm['CCFLAGS'] = env_arm['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
+
+# if the linker script changed, relink the target
+Depends(TARGET_ARM, rtconfig.LINK_SCRIPT)
+
+# prepare and make building environment per architecture
+objs_arm = PrepareBuilding(env_arm, RTT_ROOT, 'arm')
+DoBuilding(TARGET_ARM, 'arm', objs_arm)
+
+# Switch symbols
+#for o in objs_arm:
+#    print( o.name + ", ")
+
+# ------------------------ riscv architecture ------------------------
+
+rtconfig = __import__('rtconfig_risc-v')
+ARCH=rtconfig.ARCH
+
+env_riscv = Environment(tools = ['mingw'],
+              ARCH = rtconfig.ARCH,
+              AS = rtconfig.AS, ASFLAGS = rtconfig.AFLAGS,
+              CC = rtconfig.CC, CCFLAGS = rtconfig.CFLAGS,
+              AR = rtconfig.AR, ARFLAGS = '-rc',
+              LINK = rtconfig.LINK, LINKFLAGS = rtconfig.LFLAGS)
+env_riscv.PrependENVPath('PATH', rtconfig.EXEC_PATH)
+
+Export('RTT_ROOT')
+Export('rtconfig')
+Export('ARCH')
+
+env_riscv['CCFLAGS'] = env_riscv['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
+env_riscv['ASFLAGS'] = env_riscv['ASFLAGS'] + ' -I' + os.path.join(RTT_ROOT, 'libcpu/risc-v/common')
+
+# if the linker script changed, relink the target
+#Depends(TARGET_RISCV, rtconfig.LINK_SCRIPT)
+
+# prepare and make building environment per architecture
+objs_riscv = PrepareBuilding(env_riscv, RTT_ROOT, 'risc-v')
+DoBuilding(TARGET_RISCV, 'risc-v', objs_riscv, True)

@@ -1,30 +1,24 @@
 # for module compiling
 import os
+Import('RTT_ROOT')
 Import('ARCH')
 
 cwd = str(Dir('#'))
 objs = []
-
+#list = os.listdir(cwd)
 list_arm = ['arm']
-list_riscv = ['risc-v']
+list_riscv = ['rv32m1']
 
 if ARCH == 'arm':
     for d in list_arm:
         path = os.path.join(cwd, d)
         if os.path.isfile(os.path.join(path, 'SConscript')):
-            objs = objs + SConscript(os.path.join(path, 'SConscript'))
+            objs = objs + SConscript(os.path.join(d, 'SConscript'))
 
 if ARCH == 'risc-v':
     for d in list_riscv:
         path = os.path.join(cwd, d)
         if os.path.isfile(os.path.join(path, 'SConscript')):
-            objs = objs + SConscript(os.path.join(path, 'SConscript'))
-
-#if ARCH == 'hybrid':
-#    objs = Object('')
-
-#print('ARCH ' + ARCH + ' OBJS:')
-#for o in objs:
-#    print( o.name + ", ")
+            objs = objs + SConscript(os.path.join(d, 'SConscript'))
 
 Return('objs')
