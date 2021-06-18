@@ -56,6 +56,14 @@ int rt_hw_systick_init(void)
     return 0;
 }
 
+void rt_hw_amp_processor_lock( const char *name )
+{
+}
+
+void rt_hw_amp_processor_unlock( const char *name )
+{
+}
+
 void rt_hw_board_init(void)
 {
     BOARD_InitPins_Core1();

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -33,6 +33,8 @@
  * 2019-05-17     Bernard      change version number to v4.0.2
  * 2019-12-20     Bernard      change version number to v4.0.3
  * 2020-08-10     Meco Man     add macro for struct rt_device_ops
+ * 2020-10-23     Meco Man     define maximum value of ipc type
+ * 2021-05-10     armink       change version number to v4.0.4
  */
 
 #ifndef __RT_DEF_H__
@@ -54,7 +56,7 @@ extern "C" {
 /* RT-Thread version information */
 #define RT_VERSION                      4L              /**< major version number */
 #define RT_SUBVERSION                   0L              /**< minor version number */
-#define RT_REVISION                     3L              /**< revise version number */
+#define RT_REVISION                     4L              /**< revise version number */
 
 /* RT-Thread version */
 #define RTTHREAD_VERSION                ((RT_VERSION * 10000) + \
@@ -102,6 +104,13 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
 #define RT_UINT32_MAX                   0xffffffff      /**< Maxium number of UINT32 */
 #define RT_TICK_MAX                     RT_UINT32_MAX   /**< Maxium number of tick */
 
+/* maximum value of ipc type */
+#define RT_SEM_VALUE_MAX                RT_UINT16_MAX   /**< Maxium number of semaphore .value */
+#define RT_MUTEX_VALUE_MAX              RT_UINT16_MAX   /**< Maxium number of mutex .value */
+#define RT_MUTEX_HOLD_MAX               RT_UINT8_MAX    /**< Maxium number of mutex .hold */
+#define RT_MB_ENTRY_MAX                 RT_UINT16_MAX   /**< Maxium number of mailbox .entry */
+#define RT_MQ_ENTRY_MAX                 RT_UINT16_MAX   /**< Maxium number of message queue .entry */
+
 #if defined (__ARMCC_VERSION) && (__ARMCC_VERSION >= 6010050)
 #define __CLANG_ARM
 #endif
@@ -109,7 +118,7 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
 /* Compiler Related Definitions */
 #if defined(__CC_ARM) || defined(__CLANG_ARM)           /* ARM Compiler */
     #include <stdarg.h>
-    #define SECTION(x)                  __attribute__((section(x)))
+    #define RT_SECTION(x)               __attribute__((section(x)))
     #define RT_UNUSED                   __attribute__((unused))
     #define RT_USED                     __attribute__((used))
     #define ALIGN(n)                    __attribute__((aligned(n)))
@@ -125,7 +134,7 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
 
 #elif defined (__IAR_SYSTEMS_ICC__)     /* for IAR Compiler */
     #include <stdarg.h>
-    #define SECTION(x)                  @ x
+    #define RT_SECTION(x)               @ x
     #define RT_UNUSED
     #define RT_USED                     __root
     #define PRAGMA(x)                   _Pragma(#x)
@@ -146,7 +155,7 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
         #define va_arg(v,l)             __builtin_va_arg(v,l)
     #endif
 
-    #define SECTION(x)                  __attribute__((section(x)))
+    #define RT_SECTION(x)               __attribute__((section(x)))
     #define RT_UNUSED                   __attribute__((unused))
     #define RT_USED                     __attribute__((used))
     #define ALIGN(n)                    __attribute__((aligned(n)))
@@ -155,7 +164,7 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
     #define RTT_API
 #elif defined (__ADSPBLACKFIN__)        /* for VisualDSP++ Compiler */
     #include <stdarg.h>
-    #define SECTION(x)                  __attribute__((section(x)))
+    #define RT_SECTION(x)               __attribute__((section(x)))
     #define RT_UNUSED                   __attribute__((unused))
     #define RT_USED                     __attribute__((used))
     #define ALIGN(n)                    __attribute__((aligned(n)))
@@ -164,7 +173,7 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
     #define RTT_API
 #elif defined (_MSC_VER)
     #include <stdarg.h>
-    #define SECTION(x)
+    #define RT_SECTION(x)
     #define RT_UNUSED
     #define RT_USED
     #define ALIGN(n)                    __declspec(align(n))
@@ -176,12 +185,22 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
     /* The way that TI compiler set section is different from other(at least
      * GCC and MDK) compilers. See ARM Optimizing C/C++ Compiler 5.9.3 for more
      * details. */
-    #define SECTION(x)
+    #define RT_SECTION(x)
     #define RT_UNUSED
     #define RT_USED
     #define PRAGMA(x)                   _Pragma(#x)
     #define ALIGN(n)
     #define RT_WEAK
+    #define rt_inline                   static inline
+    #define RTT_API
+#elif defined (__TASKING__)
+    #include <stdarg.h>
+    #define RT_SECTION(x)               __attribute__((section(x)))
+    #define RT_UNUSED                   __attribute__((unused))
+    #define RT_USED                     __attribute__((used, protect))
+    #define PRAGMA(x)                   _Pragma(#x)
+    #define ALIGN(n)                    __attribute__((__align(n)))
+    #define RT_WEAK                     __attribute__((weak))
     #define rt_inline                   static inline
     #define RTT_API
 #else
@@ -192,7 +211,32 @@ typedef rt_base_t                       rt_off_t;       /**< Type for offset */
 #ifdef RT_USING_COMPONENTS_INIT
 typedef int (*init_fn_t)(void);
 #ifdef _MSC_VER /* we do not support MS VC++ compiler */
-    #define INIT_EXPORT(fn, level)
+#pragma section("rti_fn$f",read)
+    #if RT_DEBUG_INIT
+        struct rt_init_desc
+        {
+            const char* level;
+            const init_fn_t fn;
+            const char* fn_name;
+        };
+        #define INIT_EXPORT(fn, level)                                  \
+                                const char __rti_level_##fn[] = level"__rt_init_"#fn;   \
+                                const char __rti_##fn##_name[] = #fn;                   \
+                                __declspec(allocate("rti_fn$f"))                        \
+                                RT_USED const struct rt_init_desc __rt_init_msc_##fn =  \
+                                {__rti_level_##fn, fn, __rti_##fn##_name};
+    #else
+        struct rt_init_desc
+        {
+            const char* level;
+            const init_fn_t fn;
+        };
+        #define INIT_EXPORT(fn, level)                                  \
+                                const char __rti_level_##fn[] = level"__rt_init_"#fn;   \
+                                __declspec(allocate("rti_fn$f"))                        \
+                                RT_USED const struct rt_init_desc __rt_init_msc_##fn =  \
+                                {__rti_level_##fn, fn };
+    #endif
 #else
     #if RT_DEBUG_INIT
         struct rt_init_desc
@@ -202,11 +246,11 @@ typedef int (*init_fn_t)(void);
         };
         #define INIT_EXPORT(fn, level)                                                       \
             const char __rti_##fn##_name[] = #fn;                                            \
-            RT_USED const struct rt_init_desc __rt_init_desc_##fn SECTION(".rti_fn." level) = \
+            RT_USED const struct rt_init_desc __rt_init_desc_##fn RT_SECTION(".rti_fn." level) = \
             { __rti_##fn##_name, fn};
     #else
         #define INIT_EXPORT(fn, level)                                                       \
-            RT_USED const init_fn_t __rt_init_##fn SECTION(".rti_fn." level) = fn
+            RT_USED const init_fn_t __rt_init_##fn RT_SECTION(".rti_fn." level) = fn
     #endif
 #endif
 #else
@@ -782,6 +826,9 @@ struct rt_memheap_item
 
     struct rt_memheap_item *next_free;                  /**< next free memheap item */
     struct rt_memheap_item *prev_free;                  /**< prev free memheap item */
+#ifdef RT_USING_MEMTRACE
+    rt_uint8_t              owner_thread_name[4];       /**< owner thread name */
+#endif
 };
 
 /**
@@ -863,6 +910,7 @@ enum rt_device_class_type
     RT_Device_Class_Miscellaneous,                      /**< Miscellaneous device */
     RT_Device_Class_Sensor,                             /**< Sensor device */
     RT_Device_Class_Touch,                              /**< Touch device */
+    RT_Device_Class_PHY,                                /**< PHY device */
     RT_Device_Class_Unknown                             /**< unknown device */
 };
 
@@ -915,10 +963,12 @@ enum rt_device_class_type
 #define RT_DEVICE_CTRL_BLK_AUTOREFRESH  0x13            /**< block device : enter/exit auto refresh mode */
 #define RT_DEVICE_CTRL_NETIF_GETMAC     0x10            /**< get mac address */
 #define RT_DEVICE_CTRL_MTD_FORMAT       0x10            /**< format a MTD device */
-#define RT_DEVICE_CTRL_RTC_GET_TIME     0x10            /**< get time */
-#define RT_DEVICE_CTRL_RTC_SET_TIME     0x11            /**< set time */
-#define RT_DEVICE_CTRL_RTC_GET_ALARM    0x12            /**< get alarm */
-#define RT_DEVICE_CTRL_RTC_SET_ALARM    0x13            /**< set alarm */
+#define RT_DEVICE_CTRL_RTC_GET_TIME     0x10            /**< get second time */
+#define RT_DEVICE_CTRL_RTC_SET_TIME     0x11            /**< set second time */
+#define RT_DEVICE_CTRL_RTC_GET_TIME_US  0x12            /**< get microsecond time */
+#define RT_DEVICE_CTRL_RTC_SET_TIME_US  0x13            /**< set microsecond time */
+#define RT_DEVICE_CTRL_RTC_GET_ALARM    0x14            /**< get alarm */
+#define RT_DEVICE_CTRL_RTC_SET_ALARM    0x15            /**< set alarm */
 
 typedef struct rt_device *rt_device_t;
 
@@ -1020,6 +1070,10 @@ struct rt_device_blk_sectors
 #define RTGRAPHIC_CTRL_GET_INFO         3
 #define RTGRAPHIC_CTRL_SET_MODE         4
 #define RTGRAPHIC_CTRL_GET_EXT          5
+#define RTGRAPHIC_CTRL_SET_BRIGHTNESS   6
+#define RTGRAPHIC_CTRL_GET_BRIGHTNESS   7
+#define RTGRAPHIC_CTRL_GET_MODE         8
+#define RTGRAPHIC_CTRL_GET_STATUS       9
 
 /* graphic deice */
 enum
@@ -1036,9 +1090,7 @@ enum
     RTGRAPHIC_PIXEL_FORMAT_RGB888,
     RTGRAPHIC_PIXEL_FORMAT_ARGB888,
     RTGRAPHIC_PIXEL_FORMAT_ABGR888,
-    RTGRAPHIC_PIXEL_FORMAT_ARGB565,
-    RTGRAPHIC_PIXEL_FORMAT_ALPHA,
-    RTGRAPHIC_PIXEL_FORMAT_COLOR,
+    RTGRAPHIC_PIXEL_FORMAT_RESERVED,
 };
 
 /**
@@ -1053,7 +1105,7 @@ struct rt_device_graphic_info
 {
     rt_uint8_t  pixel_format;                           /**< graphic format */
     rt_uint8_t  bits_per_pixel;                         /**< bits per pixel */
-    rt_uint16_t reserved;                               /**< reserved field */
+    rt_uint16_t pitch;                                  /**< bytes per line */
 
     rt_uint16_t width;                                  /**< width of graphic device */
     rt_uint16_t height;                                 /**< height of graphic device */

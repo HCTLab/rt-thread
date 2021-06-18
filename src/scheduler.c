@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2021, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -38,14 +38,14 @@ rt_uint32_t rt_thread_ready_priority_group;
 #if RT_THREAD_PRIORITY_MAX > 32
 /* Maximum priority level, 256 */
 rt_uint8_t rt_thread_ready_table[32];
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
 
 #ifndef RT_USING_SMP
 extern volatile rt_uint8_t rt_interrupt_nest;
 static rt_int16_t rt_scheduler_lock_nest;
-struct rt_thread *rt_current_thread;
+struct rt_thread *rt_current_thread = RT_NULL;
 rt_uint8_t rt_current_priority;
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
 rt_list_t rt_thread_defunct;
 
@@ -71,18 +71,18 @@ rt_scheduler_sethook(void (*hook)(struct rt_thread *from, struct rt_thread *to))
 }
 
 /**@}*/
-#endif
+#endif /* RT_USING_HOOK */
 
 #ifdef RT_USING_OVERFLOW_CHECK
 static void _rt_scheduler_stack_check(struct rt_thread *thread)
 {
     RT_ASSERT(thread != RT_NULL);
 
-#if defined(ARCH_CPU_STACK_GROWS_UPWARD)
+#ifdef ARCH_CPU_STACK_GROWS_UPWARD
     if (*((rt_uint8_t *)((rt_ubase_t)thread->stack_addr + thread->stack_size - 1)) != '#' ||
 #else
     if (*((rt_uint8_t *)thread->stack_addr) != '#' ||
-#endif
+#endif /* ARCH_CPU_STACK_GROWS_UPWARD */
         (rt_ubase_t)thread->sp <= (rt_ubase_t)thread->stack_addr ||
         (rt_ubase_t)thread->sp >
         (rt_ubase_t)thread->stack_addr + (rt_ubase_t)thread->stack_size)
@@ -90,16 +90,11 @@ static void _rt_scheduler_stack_check(struct rt_thread *thread)
         rt_ubase_t level;
 
         rt_kprintf("thread:%s stack overflow\n", thread->name);
-#ifdef RT_USING_FINSH
-        {
-            extern long list_thread(void);
-            list_thread();
-        }
-#endif
+
         level = rt_hw_interrupt_disable();
         while (level);
     }
-#if defined(ARCH_CPU_STACK_GROWS_UPWARD)
+#ifdef ARCH_CPU_STACK_GROWS_UPWARD
     else if ((rt_ubase_t)thread->sp > ((rt_ubase_t)thread->stack_addr + thread->stack_size))
     {
         rt_kprintf("warning: %s stack is close to the top of stack address.\n",
@@ -111,9 +106,9 @@ static void _rt_scheduler_stack_check(struct rt_thread *thread)
         rt_kprintf("warning: %s stack is close to end of stack address.\n",
                    thread->name);
     }
-#endif
+#endif /* ARCH_CPU_STACK_GROWS_UPWARD */
 }
-#endif
+#endif /* RT_USING_OVERFLOW_CHECK */
 
 /*
  * get the highest priority thread in ready queue
@@ -134,7 +129,7 @@ static struct rt_thread* _get_highest_priority_thread(rt_ubase_t *highest_prio)
 #else
     highest_ready_priority = __rt_ffs(rt_thread_ready_priority_group) - 1;
     local_highest_ready_priority = __rt_ffs(pcpu->priority_group) - 1;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
 
     /* get highest ready priority thread */
     if (highest_ready_priority < local_highest_ready_priority)
@@ -167,7 +162,7 @@ static struct rt_thread* _get_highest_priority_thread(rt_ubase_t *highest_prio)
     highest_ready_priority = (number << 3) + __rt_ffs(rt_thread_ready_table[number]) - 1;
 #else
     highest_ready_priority = __rt_ffs(rt_thread_ready_priority_group) - 1;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
 
     /* get highest ready priority thread */
     highest_priority_thread = rt_list_entry(rt_thread_priority_table[highest_ready_priority].next,
@@ -178,7 +173,7 @@ static struct rt_thread* _get_highest_priority_thread(rt_ubase_t *highest_prio)
 
     return highest_priority_thread;
 }
-#endif
+#endif /* RT_USING_SMP */
 
 /**
  * @ingroup SystemInit
@@ -188,12 +183,12 @@ void rt_system_scheduler_init(void)
 {
 #ifdef RT_USING_SMP
     int cpu;
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
     register rt_base_t offset;
 
 #ifndef RT_USING_SMP
     rt_scheduler_lock_nest = 0;
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
     RT_DEBUG_LOG(RT_DEBUG_SCHEDULER, ("start scheduler: max priority 0x%02x\n",
                                       RT_THREAD_PRIORITY_MAX));
@@ -218,9 +213,9 @@ void rt_system_scheduler_init(void)
 
 #if RT_THREAD_PRIORITY_MAX > 32
         rt_memset(pcpu->ready_table, 0, sizeof(pcpu->ready_table));
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
     }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
     /* initialize ready priority group */
     rt_thread_ready_priority_group = 0;
@@ -228,7 +223,7 @@ void rt_system_scheduler_init(void)
 #if RT_THREAD_PRIORITY_MAX > 32
     /* initialize ready table */
     rt_memset(rt_thread_ready_table, 0, sizeof(rt_thread_ready_table));
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
 
     /* initialize thread defunct */
     rt_list_init(&rt_thread_defunct);
@@ -250,7 +245,7 @@ void rt_system_scheduler_start(void)
     to_thread->oncpu = rt_hw_cpu_id();
 #else
     rt_current_thread = to_thread;
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
     rt_schedule_remove_thread(to_thread);
     to_thread->stat = RT_THREAD_RUNNING;
@@ -260,7 +255,7 @@ void rt_system_scheduler_start(void)
     rt_hw_context_switch_to((rt_ubase_t)&to_thread->sp, to_thread);
 #else
     rt_hw_context_switch_to((rt_ubase_t)&to_thread->sp);
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
     /* never come back */
 }
@@ -275,10 +270,10 @@ void rt_system_scheduler_start(void)
 #ifdef RT_USING_SMP
 /**
  * This function will handle IPI interrupt and do a scheduling in system;
- * 
+ *
  * @param vector, the number of IPI interrupt for system scheduling
  * @param param, use RT_NULL
- * 
+ *
  * NOTE: this function should be invoke or register as ISR in BSP.
  */
 void rt_scheduler_ipi_handler(int vector, void *param)
@@ -288,7 +283,7 @@ void rt_scheduler_ipi_handler(int vector, void *param)
 
 /**
  * This function will perform one scheduling. It will select one thread
- * with the highest priority level in global ready queue or local ready queue, 
+ * with the highest priority level in global ready queue or local ready queue,
  * then switch to it.
  */
 void rt_schedule(void)
@@ -324,7 +319,7 @@ void rt_schedule(void)
             rt_thread_resume(current_thread);
         }
     }
-#endif
+#endif /* RT_USING_SIGNALS */
 
     if (current_thread->scheduler_lock_nest == 1) /* whether lock scheduler */
     {
@@ -346,9 +341,9 @@ void rt_schedule(void)
                 }
                 else
                 {
-                    current_thread->stat &= ~RT_THREAD_STAT_YIELD_MASK;
                     rt_schedule_insert_thread(current_thread);
                 }
+                current_thread->stat &= ~RT_THREAD_STAT_YIELD_MASK;
             }
             to_thread->oncpu = cpu_id;
             if (to_thread != current_thread)
@@ -372,7 +367,7 @@ void rt_schedule(void)
 
 #ifdef RT_USING_OVERFLOW_CHECK
                 _rt_scheduler_stack_check(to_thread);
-#endif
+#endif /* RT_USING_OVERFLOW_CHECK */
 
                 rt_hw_context_switch((rt_ubase_t)&current_thread->sp,
                         (rt_ubase_t)&to_thread->sp, to_thread);
@@ -401,7 +396,7 @@ void rt_schedule(void)
     {
         rt_hw_interrupt_enable(level);
     }
-#endif
+#endif /* RT_USING_SIGNALS */
 
 __exit:
     return ;
@@ -409,7 +404,7 @@ __exit:
 #else
 /**
  * This function will perform one schedule. It will select one thread
- * with the highest priority level, then switch to it.
+ * with the highest priority level, and switch to it immediately.
  */
 void rt_schedule(void)
 {
@@ -444,9 +439,9 @@ void rt_schedule(void)
                 }
                 else
                 {
-                    rt_current_thread->stat &= ~RT_THREAD_STAT_YIELD_MASK;
                     need_insert_from_thread = 1;
                 }
+                rt_current_thread->stat &= ~RT_THREAD_STAT_YIELD_MASK;
             }
 
             if (to_thread != rt_current_thread)
@@ -477,7 +472,7 @@ void rt_schedule(void)
 
 #ifdef RT_USING_OVERFLOW_CHECK
                 _rt_scheduler_stack_check(to_thread);
-#endif
+#endif /* RT_USING_OVERFLOW_CHECK */
 
                 if (rt_interrupt_nest == 0)
                 {
@@ -507,7 +502,7 @@ void rt_schedule(void)
                     {
                         rt_hw_interrupt_enable(level);
                     }
-#endif
+#endif /* RT_USING_SIGNALS */
                     goto __exit;
                 }
                 else
@@ -532,7 +527,7 @@ void rt_schedule(void)
 __exit:
     return;
 }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
 /**
  * This function checks if a scheduling is needed after IRQ context. If yes,
@@ -564,7 +559,7 @@ void rt_scheduler_do_irq_switch(void *context)
             rt_thread_resume(current_thread);
         }
     }
-#endif
+#endif /* RT_USING_SIGNALS */
 
     if (pcpu->irq_switch_flag == 0)
     {
@@ -595,9 +590,9 @@ void rt_scheduler_do_irq_switch(void *context)
                 }
                 else
                 {
-                    current_thread->stat &= ~RT_THREAD_STAT_YIELD_MASK;
                     rt_schedule_insert_thread(current_thread);
                 }
+                current_thread->stat &= ~RT_THREAD_STAT_YIELD_MASK;
             }
             to_thread->oncpu = cpu_id;
             if (to_thread != current_thread)
@@ -613,7 +608,7 @@ void rt_scheduler_do_irq_switch(void *context)
 
 #ifdef RT_USING_OVERFLOW_CHECK
                 _rt_scheduler_stack_check(to_thread);
-#endif
+#endif /* RT_USING_OVERFLOW_CHECK */
                 RT_DEBUG_LOG(RT_DEBUG_SCHEDULER, ("switch in interrupt\n"));
 
                 current_thread->cpus_lock_nest--;
@@ -626,7 +621,7 @@ void rt_scheduler_do_irq_switch(void *context)
     }
     rt_hw_interrupt_enable(level);
 }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
 /*
  * This function will insert a thread to system ready queue. The state of
@@ -666,7 +661,7 @@ void rt_schedule_insert_thread(struct rt_thread *thread)
     {
 #if RT_THREAD_PRIORITY_MAX > 32
         rt_thread_ready_table[thread->number] |= thread->high_mask;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
         rt_thread_ready_priority_group |= thread->number_mask;
 
         rt_list_insert_before(&(rt_thread_priority_table[thread->current_priority]),
@@ -680,7 +675,7 @@ void rt_schedule_insert_thread(struct rt_thread *thread)
 
 #if RT_THREAD_PRIORITY_MAX > 32
         pcpu->ready_table[thread->number] |= thread->high_mask;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
         pcpu->priority_group |= thread->number_mask;
 
         rt_list_insert_before(&(rt_cpu_index(bind_cpu)->priority_table[thread->current_priority]),
@@ -729,14 +724,14 @@ void rt_schedule_insert_thread(struct rt_thread *thread)
     /* set priority mask */
 #if RT_THREAD_PRIORITY_MAX > 32
     rt_thread_ready_table[thread->number] |= thread->high_mask;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
     rt_thread_ready_priority_group |= thread->number_mask;
 
 __exit:
     /* enable interrupt */
     rt_hw_interrupt_enable(temp);
 }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
 /*
  * This function will remove a thread from system ready queue.
@@ -773,7 +768,7 @@ void rt_schedule_remove_thread(struct rt_thread *thread)
             }
 #else
             rt_thread_ready_priority_group &= ~thread->number_mask;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
         }
     }
     else
@@ -784,13 +779,13 @@ void rt_schedule_remove_thread(struct rt_thread *thread)
         {
 #if RT_THREAD_PRIORITY_MAX > 32
             pcpu->ready_table[thread->number] &= ~thread->high_mask;
-            if (rt_thread_ready_table[thread->number] == 0)
+            if (pcpu->ready_table[thread->number] == 0)
             {
                 pcpu->priority_group &= ~thread->number_mask;
             }
 #else
             pcpu->priority_group &= ~thread->number_mask;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
         }
     }
 
@@ -823,13 +818,13 @@ void rt_schedule_remove_thread(struct rt_thread *thread)
         }
 #else
         rt_thread_ready_priority_group &= ~thread->number_mask;
-#endif
+#endif /* RT_THREAD_PRIORITY_MAX > 32 */
     }
 
     /* enable interrupt */
     rt_hw_interrupt_enable(level);
 }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 
 /**
  * This function will lock the thread scheduler.
@@ -890,7 +885,7 @@ void rt_enter_critical(void)
     /* enable interrupt */
     rt_hw_interrupt_enable(level);
 }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 RTM_EXPORT(rt_enter_critical);
 
 /**
@@ -964,7 +959,7 @@ void rt_exit_critical(void)
         rt_hw_interrupt_enable(level);
     }
 }
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 RTM_EXPORT(rt_exit_critical);
 
 /**
@@ -980,7 +975,7 @@ rt_uint16_t rt_critical_level(void)
     return current_thread->critical_lock_nest;
 #else
     return rt_scheduler_lock_nest;
-#endif /*RT_USING_SMP*/
+#endif /* RT_USING_SMP */
 }
 RTM_EXPORT(rt_critical_level);
 
