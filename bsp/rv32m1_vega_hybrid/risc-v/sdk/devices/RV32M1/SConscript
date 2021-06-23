@@ -16,6 +16,7 @@ drivers/fsl_mu.c
 drivers/fsl_sema42.c
 drivers/fsl_xrdc.c
 gcc/startup_RV32M1_ri5cy.S
+gcc/syscalls.c
 ''')
 CPPPATH = [cwd, cwd + '/../../RISCV', cwd + '/drivers', cwd + '/utilities']
 CPPDEFINES = ['CPU_RV32M1_ri5cy', 'SDK_DEBUGCONSOLE=0']

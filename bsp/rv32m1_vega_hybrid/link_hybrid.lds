@@ -180,10 +180,11 @@ SECTIONS
   .arm_stack :
   {
     . = ALIGN(8);
+    arm___StackLimit = .;
     . = . + ARM_STACK_SIZE;
     . = ALIGN(4);
-    arm__estack = .;
     arm___StackTop = .;
+    arm__estack = .;
   } > m_data
 
   .riscv_stack :

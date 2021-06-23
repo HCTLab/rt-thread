@@ -49,7 +49,7 @@ void APP_InitDomain(void)
     const xrdc_periph_t periphAccessible[] = {
         kXRDC_PeriphLpuart0, kXRDC_PeriphWdog0,   kXRDC_PeriphXrdcMgr, kXRDC_PeriphXrdcMdac, kXRDC_PeriphXrdcPac,
         kXRDC_PeriphXrdcMrc, kXRDC_PeriphSema420, kXRDC_PeriphSema421, kXRDC_PeriphWdog1,    kXRDC_PeriphPcc0,
-        kXRDC_PeriphPcc1,    kXRDC_PeriphMua,     kXRDC_PeriphMub};
+        kXRDC_PeriphPcc1,    kXRDC_PeriphMua,     kXRDC_PeriphMub };
 
     XRDC_Init(XRDC);
     XRDC_SetGlobalValid(XRDC, false);

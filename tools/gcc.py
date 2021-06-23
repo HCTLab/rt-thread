@@ -149,6 +149,12 @@ def GCCResult(rtconfig, str):
             if re.findall('pthread_create', line):
                 posix_thread = 1
 
+        # Hybrid patch (newlib is used, but headers should be NOT included)
+        have_sigaction = 0
+        have_sigevent = 0
+        have_siginfo = 0
+        have_sigval = 0
+
         if have_fdset:
             result += '#define HAVE_FDSET 1\n'
 

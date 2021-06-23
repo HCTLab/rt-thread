@@ -23,8 +23,9 @@ else:
 if os.getenv('RTT_EXEC_PATH_ARM'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH_ARM')
 
-#GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/x.x.0'
+STD_LIB_PATH = EXEC_PATH + '/../arm-none-eabi/lib'
 GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/9.3.1/thumb/v6-m/nofp'
+#GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/x.x.x'
 
 BUILD = 'debug'
 
@@ -45,9 +46,9 @@ if PLATFORM == 'gcc':
     #DEVICE = ' -mcpu=' + CPU + ' -ffunction-sections -Wall'
     if USE_CORE == 'CORE_M4':
         DEVICE += ' -mfpu=fpv4-sp-d16 -mfloat-abi=softfp'
-    CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH'
-    AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb -I $BSP_ROOT -I $ARCH'
-    #AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -I $BSP_ROOT -I $ARCH'
+    CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH -DCPU_ARM'
+    AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb -I$BSP_ROOT -I$ARCH'
+    #AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -I$BSP_ROOT -I$ARCH'
     LFLAGS = ''
     LIBS = ''
 
@@ -69,7 +70,8 @@ if PLATFORM == 'gcc':
 #                                AR + ' x $TARGET startup_RV32M1_cm0.o'
 
 POST_ACTION = 'cd build/' + ARCH + ' && ' + AR + ' x ' + GCC_LIB_PATH + '/libgcc.a && ' + \
-                                            AR + ' rcs ../../$TARGET *.o && ' + \
+                                            AR + ' x ' + STD_LIB_PATH + '/libc.a && ' + \
+              'ls *.o > list.txt && xargs ' + AR + ' -rcs ../../$TARGET < list.txt && ' + \
               'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
                                 OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
                                 AR + ' x $TARGET startup_RV32M1_cm0.o'

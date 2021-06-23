@@ -44,8 +44,8 @@
 
 /* RT-Thread Components */
 
-//#define RT_USING_COMPONENTS_INIT     
-//#define RT_USING_USER_MAIN           
+//#define RT_USING_COMPONENTS_INIT
+//#define RT_USING_USER_MAIN
 #define RT_MAIN_THREAD_STACK_SIZE 2048
 #define RT_MAIN_THREAD_PRIORITY 10
 
@@ -105,8 +105,10 @@
 
 /* POSIX layer and C standard library */
 
-//#define RT_USING_LIBC
-//#define RT_USING_POSIX
+#define RT_USING_LIBC
+#define RT_USING_POSIX
+//#define RT_USING_SIGNALS
+#define RT_USING_PTHREADS
 
 /* Network */
 

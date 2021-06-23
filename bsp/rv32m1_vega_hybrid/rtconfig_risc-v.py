@@ -18,6 +18,10 @@ else:
 if os.getenv('RTT_EXEC_PATH_RISCV'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH_RISCV')
 
+STD_LIB_PATH = EXEC_PATH + '/../riscv32-unknown-elf/lib'
+GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/riscv32-unknown-elf/7.1.1/rv32ic/ilp32/mreg16'
+#GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/riscv32-unknown-elf/x.x.x'
+
 BUILD = 'debug'
 
 if PLATFORM == 'gcc':
@@ -36,7 +40,7 @@ if PLATFORM == 'gcc':
 
     #DEVICE  = ' -march=rv32imc -mabi=ilp32'
     DEVICE  = ''
-    CFLAGS  = DEVICE + ' -fno-builtin -fno-exceptions -ffunction-sections -I$BSP_ROOT -I$ARCH'
+    CFLAGS  = DEVICE + ' -fno-builtin -fno-exceptions -ffunction-sections -I$BSP_ROOT -I$ARCH -DCPU_RISCV'
     AFLAGS  = ' -c' + DEVICE + ' -x assembler-with-cpp -I$BSP_ROOT -I$ARCH'
     LINK_SCRIPT = 'hybrid.lds'
     LFLAGS  = ''
@@ -57,6 +61,9 @@ if PLATFORM == 'gcc':
 #              OBJCPY + ' --redefine-syms=redef.riscv $TARGET && ' + \
 #              AR + ' x $TARGET startup_RV32M1_ri5cy.o'
 
-POST_ACTION = OBJCPY + ' --prefix-symbols riscv_ $TARGET && ' + \
-              OBJCPY + ' --redefine-syms=redef.riscv $TARGET && ' + \
-              AR + ' x $TARGET startup_RV32M1_ri5cy.o'
+POST_ACTION = 'cd build/' + ARCH + ' && ' + AR + ' x ' + GCC_LIB_PATH + '/libgcc.a && ' + \
+                                            AR + ' x ' + STD_LIB_PATH + '/libc.a && ' + \
+              'ls *.o > list.txt && xargs ' + AR + ' -rcs ../../$TARGET < list.txt && ' + \
+              'cd ../..  && ' + OBJCPY + ' --prefix-symbols riscv_ $TARGET && ' + \
+                                OBJCPY + ' --redefine-syms=redef.riscv $TARGET && ' + \
+                                AR + ' x $TARGET startup_RV32M1_ri5cy.o'

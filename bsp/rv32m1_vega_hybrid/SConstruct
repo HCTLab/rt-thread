@@ -43,6 +43,7 @@ env_arm.PrependENVPath('PATH', rtconfig.EXEC_PATH)
 Export('rtconfig')
 Export('ARCH')
 
+# Uncomment when RT_USING_PTHREADS is not defined
 env_arm['CCFLAGS'] = env_arm['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
 
 # add RT config header as dependency (if header changes, relink the target)
@@ -73,7 +74,8 @@ env_riscv.PrependENVPath('PATH', rtconfig.EXEC_PATH)
 Export('rtconfig')
 Export('ARCH')
 
-env_riscv['CCFLAGS'] = env_riscv['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
+# Uncomment when RT_USING_PTHREADS is not defined
+#env_riscv['CCFLAGS'] = env_riscv['CCFLAGS'] + ' -DHAVE_SIGVAL -DHAVE_SIGEVENT -DHAVE_SIGINFO'
 env_riscv['ASFLAGS'] = env_riscv['ASFLAGS'] + ' -I' + os.path.join(RTT_ROOT, 'libcpu/risc-v/common')
 
 # add RT config header as dependency (if header changes, relink the target)
