@@ -39,6 +39,86 @@
  * Code
  ******************************************************************************/
 
+#ifdef RT_USING_SMP
+
+int rt_hw_cpu_id(void)
+{
+    return 0;  // Fixed by now
+}
+
+void rt_hw_spin_lock_init(rt_hw_spinlock_t *lock)
+{
+    lock->slock = 0;
+}
+
+void rt_hw_spin_lock(rt_hw_spinlock_t *lock)
+{
+    lock->tickets.owner--;
+}
+
+void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
+{
+    lock->tickets.owner++;
+}
+
+void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
+{
+    int idx;
+
+    for (idx = 0; idx < RT_CPUS_NR; idx ++)
+    {
+        if (cpu_mask & (1 << idx))
+        {
+            //clint_ipi_send(idx);
+        }
+    }
+}
+
+extern rt_base_t secondary_boot_flag;
+
+void rt_hw_secondary_cpu_up(void)
+{
+    mb();
+    secondary_boot_flag = 0xa55a;
+}
+
+extern void rt_hw_scondary_interrupt_init(void);
+extern int  rt_hw_tick_init(void);
+extern int  rt_hw_clint_ipi_enable(void);
+
+void secondary_cpu_c_start(void)
+{
+    rt_hw_spin_lock(&_cpus_lock);
+
+    /* initialize interrupt controller */
+    rt_hw_scondary_interrupt_init();
+
+    rt_hw_tick_init();
+
+    rt_hw_clint_ipi_enable();
+
+    rt_system_scheduler_start();
+}
+
+void rt_hw_secondary_cpu_idle_exec(void)
+{
+    //asm volatile ("wfi");
+}
+
+#endif /*RT_USING_SMP*/
+
+void rt_hw_cpu_shutdown()
+{
+    rt_uint32_t level;
+    rt_kprintf("shutdown...\n");
+
+    level = rt_hw_interrupt_disable();
+    while (level)
+    {
+        RT_ASSERT(0);
+    }
+}
+
 void LPIT1_IRQHandler(void)
 {
     rt_tick_increase();
@@ -56,12 +136,9 @@ int rt_hw_systick_init(void)
     return 0;
 }
 
-void rt_hw_amp_processor_lock( const char *name )
+void rt_hw_us_delay( rt_uint32_t us )
 {
-}
-
-void rt_hw_amp_processor_unlock( const char *name )
-{
+    // TBD
 }
 
 void rt_hw_board_init(void)
@@ -84,6 +161,8 @@ void rt_hw_board_init(void)
     rt_hw_systick_init();  // Core 0 uses LPIT0 and this core uses LPIT1
 
 #ifdef RT_USING_CONSOLE
+    // Note: rt_console_set_device() calls rt_serial_init() which calls uart_configure() which calls CLOCK_SetIpSrc()
+    //       CLOCK_SetIpSrc() can assert when several clock configs mismatch
     rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
 #endif
 

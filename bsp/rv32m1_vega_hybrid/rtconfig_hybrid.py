@@ -2,8 +2,10 @@ import os
 
 # Hybrid compilation options.
 # Please refer to 'rtconfig_arm.py' or 'rtconfig_risc-v.py' for specific architecture compiling options
-CROSS_TOOL  ='gcc'
-ARCH        ='hybrid'
+CROSS_TOOL  = 'gcc'
+ARCH        = 'hybrid'
+
+STD_LIB     = 'build/arm/libc.a build/arm/libgcc.a build/risc-v/libc.a build/risc-v/libgcc.a'
 
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
@@ -37,7 +39,7 @@ if PLATFORM == 'gcc':
     AFLAGS = ''
     LINK_SCRIPT = 'link_hybrid.lds'
     TARGET_LIBS = 'rtthread.arm.lib rtthread.risc-v.lib'
-    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T %s startup_RV32M1_cm0.o startup_RV32M1_ri5cy.o --allow-multiple-definition --start-group %s --end-group ' % (LINK_SCRIPT, TARGET_LIBS)
+    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T %s startup_RV32M1_cm0.o startup_RV32M1_ri5cy.o --allow-multiple-definition --start-group %s %s --end-group ' % (LINK_SCRIPT, STD_LIB, TARGET_LIBS)
     LIBS = ''
 
     CPATH = ''

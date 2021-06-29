@@ -1,0 +1,37 @@
+/*********************************************************************
+*              SEGGER MICROCONTROLLER GmbH & Co. K.G.                *
+*        Solutions for real time microcontroller applications        *
+**********************************************************************
+*                                                                    *
+*        (c) 2011-2015 SEGGER Microcontroller GmbH & Co. KG          *
+*                                                                    *
+* Internet: www.segger.com Support: support@segger.com               *
+*                                                                    *
+**********************************************************************
+----------------------------------------------------------------------
+Purpose :
+---------------------------END-OF-HEADER------------------------------
+*/
+
+/*********************************************************************
+*
+*       InitTarget
+*/
+void InitTarget(void) {
+
+ unsigned int v;
+ unsigned int Addrtempo;
+ unsigned int Tmp;
+
+  Report("******************************************************");
+  Report("J-Link script: RV32M1_M4. J-Link script");
+  Report("******************************************************");
+
+
+  CPU = CORTEX_M4;
+  JTAG_AllowTAPReset = 0;
+  CORESIGHT_AddAP(0, CORESIGHT_AHB_AP);
+  CORESIGHT_AddAP(1, CORESIGHT_AHB_AP);
+  CORESIGHT_AddAP(2, CORESIGHT_AHB_AP);
+  CORESIGHT_IndexAHBAPToUse = 0;
+}

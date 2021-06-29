@@ -169,11 +169,13 @@ static rt_err_t uart_configure(struct rt_serial_device *serial, struct serial_co
     LPUART_Init(uart->uart_base, &config, uartClkSrcFreq0);
     LPUART_EnableInterrupts(uart->uart_base, kLPUART_RxDataRegFullInterruptEnable);
 
+    /*(JAAS) LPUART_Init() hangs
     CLOCK_SetIpSrc(kCLOCK_Lpuart1, kCLOCK_IpSrcFircAsync);
 
     uint32_t uartClkSrcFreq1 = CLOCK_GetIpFreq(kCLOCK_Lpuart1);
     LPUART_Init(uart->uart_base, &config, uartClkSrcFreq1);
     LPUART_EnableInterrupts(uart->uart_base, kLPUART_RxDataRegFullInterruptEnable);
+    */
 
     return RT_EOK;
 }

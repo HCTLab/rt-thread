@@ -6,6 +6,8 @@
 
 /* RT-Thread Kernel */
 
+//#define RT_USING_SMP
+#define RT_CPUS_NR 2
 #define RT_NAME_MAX 8
 #define RT_ALIGN_SIZE 4
 #define RT_THREAD_PRIORITY_32

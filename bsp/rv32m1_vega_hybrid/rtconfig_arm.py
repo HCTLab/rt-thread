@@ -27,6 +27,8 @@ STD_LIB_PATH = EXEC_PATH + '/../arm-none-eabi/lib'
 GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/9.3.1/thumb/v6-m/nofp'
 #GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/x.x.x'
 
+OBJ_PATH = 'build/' + ARCH
+
 BUILD = 'debug'
 
 if PLATFORM == 'gcc':
@@ -64,14 +66,18 @@ if PLATFORM == 'gcc':
     CXXFLAGS = CFLAGS
 
 #POST_ACTION = 'cd build/' + ARCH + ' && ' + AR + ' x ' + GCC_LIB_PATH + '/libgcc.a && ' + \
-#                                            AR + ' rcs ../../$TARGET *.o && ' + \
-#              'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET --rename-section .bss=.arm_bss --rename-section .sbss=.arm_sbss --rename-section .data=.arm_data --rename-section .sdata=.arm_sdata && ' + \
+#                                            AR + ' x ' + STD_LIB_PATH + '/libc.a && ' + \
+#              'ls *.o > list.txt && xargs ' + AR + ' -rcs ../../$TARGET < list.txt && ' + \
+#              'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
 #                                OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
 #                                AR + ' x $TARGET startup_RV32M1_cm0.o'
 
-POST_ACTION = 'cd build/' + ARCH + ' && ' + AR + ' x ' + GCC_LIB_PATH + '/libgcc.a && ' + \
-                                            AR + ' x ' + STD_LIB_PATH + '/libc.a && ' + \
-              'ls *.o > list.txt && xargs ' + AR + ' -rcs ../../$TARGET < list.txt && ' + \
-              'cd ../..  && ' + OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
-                                OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
-                                AR + ' x $TARGET startup_RV32M1_cm0.o'
+POST_ACTION = 'cd ' + OBJ_PATH + ' && ' + \
+              'cp ' + GCC_LIB_PATH + '/libgcc.a . && ' + \
+              'cp ' + STD_LIB_PATH + '/libc.a . && ' + \
+              'cd ../..  && ' + \
+              OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
+              OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
+              OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libgcc.a && ' + \
+              OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libc.a && ' + \
+              AR + ' x $TARGET startup_RV32M1_cm0.o'
