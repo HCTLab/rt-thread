@@ -26,20 +26,9 @@ static pthread_t       rwthread;
 
 static void *rw_thread( void *ctx )
 {
-    rt_kprintf("Hello RT-Thread from ARM thread!\n");
-
-    usleep( 10000000 );
-    rt_kprintf("Bye ARM thread!\n");
-
-    return NULL;
-}
-
-int main( int argc, char** argv )
-{
     int  i=0;
 
-    rt_kprintf("Hello RT-Thread from ARM!\n");
-    //pthread_create( &rwthread, NULL, rw_thread, NULL );
+    rt_kprintf("Hello RT-Thread from ARM thread!\n");
 
     while(1)
     {
@@ -59,6 +48,17 @@ int main( int argc, char** argv )
         } //endif
         i++;
     } //wend
+
+    //usleep( 10000000 );
+    rt_kprintf("Bye ARM thread!\n");
+
+    return NULL;
+}
+
+int main( int argc, char** argv )
+{
+    //rt_kprintf("Hello RT-Thread from ARM!\n");
+    pthread_create( &rwthread, NULL, rw_thread, NULL );
 
     return 0;
 }

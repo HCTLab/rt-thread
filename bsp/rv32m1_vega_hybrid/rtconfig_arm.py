@@ -23,7 +23,7 @@ else:
 if os.getenv('RTT_EXEC_PATH_ARM'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH_ARM')
 
-STD_LIB_PATH = EXEC_PATH + '/../arm-none-eabi/lib'
+STD_LIB_PATH = EXEC_PATH + '/../arm-none-eabi/lib/thumb/v6-m/nofp'
 GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/9.3.1/thumb/v6-m/nofp'
 #GCC_LIB_PATH = EXEC_PATH + '/../lib/gcc/arm-none-eabi/x.x.x'
 
@@ -45,7 +45,6 @@ if PLATFORM == 'gcc':
     OBJDUMP = PREFIX + 'objdump'
     OBJCPY = PREFIX + 'objcopy'
     DEVICE = ' -mcpu=' + CPU + ' -mthumb -ffunction-sections -Wall'
-    #DEVICE = ' -mcpu=' + CPU + ' -ffunction-sections -Wall'
     if USE_CORE == 'CORE_M4':
         DEVICE += ' -mfpu=fpv4-sp-d16 -mfloat-abi=softfp'
     CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH -DCPU_ARM'
