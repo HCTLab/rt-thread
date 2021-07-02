@@ -33,7 +33,7 @@ static int       uart_putc(struct rt_serial_device *serial, char c);
 static int       uart_getc(struct rt_serial_device *serial);
 static rt_size_t uart_dma_transmit(struct rt_serial_device *serial, rt_uint8_t *buf, rt_size_t size, int direction);
 
-static void     uart_irq_handler(int irqno, void *param);
+//static void     uart_irq_handler(int irqno, void *param);
 
 const struct rt_uart_ops _uart_ops =
 {
@@ -169,13 +169,11 @@ static rt_err_t uart_configure(struct rt_serial_device *serial, struct serial_co
     LPUART_Init(uart->uart_base, &config, uartClkSrcFreq0);
     LPUART_EnableInterrupts(uart->uart_base, kLPUART_RxDataRegFullInterruptEnable);
 
-    /*(JAAS) LPUART_Init() hangs
     CLOCK_SetIpSrc(kCLOCK_Lpuart1, kCLOCK_IpSrcFircAsync);
 
     uint32_t uartClkSrcFreq1 = CLOCK_GetIpFreq(kCLOCK_Lpuart1);
     LPUART_Init(uart->uart_base, &config, uartClkSrcFreq1);
     LPUART_EnableInterrupts(uart->uart_base, kLPUART_RxDataRegFullInterruptEnable);
-    */
 
     return RT_EOK;
 }

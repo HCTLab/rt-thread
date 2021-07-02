@@ -3,7 +3,7 @@
  * Copyright (c) 2016 - 2017 , NXP
  * All rights reserved.
  *
- * 
+ *
  * SPDX-License-Identifier: BSD-3-Clause
  */
 
@@ -822,7 +822,8 @@ static inline void CLOCK_SetIpSrc(clock_ip_name_t name, clock_ip_src_t src)
     uint32_t reg = (*(volatile uint32_t *)name);
 
     assert(reg & PCC_CLKCFG_PR_MASK);
-    assert(!(reg & PCC_CLKCFG_INUSE_MASK)); /* Should not change if clock has been enabled by other core. */
+    //(JAAS) Since two cores might enable same clock, don't check it!
+    //assert(!(reg & PCC_CLKCFG_INUSE_MASK)); /* Should not change if clock has been enabled by other core. */
 
     reg = (reg & ~PCC_CLKCFG_PCS_MASK) | PCC_CLKCFG_PCS(src);
 

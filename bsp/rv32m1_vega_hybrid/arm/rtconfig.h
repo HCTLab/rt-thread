@@ -43,6 +43,7 @@
 #define RT_CONSOLE_DEVICE_NAME "uart0"
 #define RT_VER_NUM 0x40000
 #define ARCH_ARM
+#define BSP_USING_UART0
 
 /* RT-Thread Components */
 
@@ -114,6 +115,7 @@
 
 /* Network */
 
+
 /* Socket abstraction layer */
 
 
@@ -149,10 +151,12 @@
 
 /* RT-Thread online packages */
 
+
 /* IoT - internet of things */
 
 
 /* Wi-Fi */
+
 
 /* Marvell WiFi */
 
@@ -203,8 +207,6 @@
 /* miscellaneous packages */
 
 
-/* sample package */
-
 /* samples: kernel and components samples */
 
 
@@ -216,8 +218,5 @@
 
 /* Network Utilities */
 
-//#define SOC_VEGA_RI5CY
-//#define BOARD_X_FRDM_VEGA
-#define BSP_USING_UART0
 
 #endif

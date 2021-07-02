@@ -22,43 +22,47 @@
 #define SEMA42_GATE             0U          // The SEMA42 gate (up to 15)
 #define LOCK_CORE               1U          // Core 0 (CM0+) locking identifier
 
-static pthread_t       rwthread;
+static pthread_t       rwthread1;
+static pthread_t       rwthread2;
 
-static void *rw_thread( void *ctx )
+static void *rw_thread( void *parameter )
 {
-    int  i=0;
+    char  data = *((char *)parameter);
+    int   i    = 0;
 
-    rt_kprintf("Hello RT-Thread from ARM thread!\n");
+    rt_kprintf("ARM thread working (%p=%c)...\n", parameter, data);
 
     while(1)
     {
-        if( (i%20) == 0 )
+        if( (i%10) == 0 )
         {
             SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
-            LPUART_WriteByte(LPUART0, 'l');
+            //LPUART_WriteByte(LPUART0, 'l');
         } //endif
 
         rt_thread_delay( RT_TICK_PER_SECOND / 5 );
-        LPUART_WriteByte(LPUART0, '-');
+        LPUART_WriteByte(LPUART0, data);
 
-        if( (i%20) == 19 )
+        if( (i%10) == 9 )
         {
-            LPUART_WriteByte(LPUART0, 'u');
+            //LPUART_WriteByte(LPUART0, 'u');
             SEMA42_Unlock(APP_SEMA42, SEMA42_GATE);
         } //endif
         i++;
     } //wend
 
-    //usleep( 10000000 );
     rt_kprintf("Bye ARM thread!\n");
 
     return NULL;
 }
 
-int main( int argc, char** argv )
+int main( int argc, char **argv )
 {
-    //rt_kprintf("Hello RT-Thread from ARM!\n");
-    pthread_create( &rwthread, NULL, rw_thread, NULL );
+    static char  t1 = '1';
+    static char  t2 = '2';
+
+    pthread_create( &rwthread1, NULL, rw_thread, &t1 );
+    pthread_create( &rwthread2, NULL, rw_thread, &t2 );
 
     return 0;
 }

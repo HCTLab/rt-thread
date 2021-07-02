@@ -191,7 +191,7 @@ const scg_lpfll_config_t g_appScgLpFllConfig_BOARD_BootClockRUN = {
 static void BOARD_InitLedPin(void)
 {
     const gpio_pin_config_t config = {
-        .pinDirection = kGPIO_DigitalOutput, .outputLogic = 1,
+        .pinDirection = kGPIO_DigitalOutput, .outputLogic = 0,
     };
 
     GPIO_PinInit(BOARD_LED1_GPIO, BOARD_LED1_GPIO_PIN, &config);
@@ -283,42 +283,60 @@ void rt_hw_us_delay( rt_uint32_t us )
     // TBD
 }
 
+#define OBJ_APP_SEMA42              SEMA420     // HW instance
+#define OBJ_SEMA42_GATE             1U          // The SEMA42 gate (up to 15)
+#define OBJ_LOCK_CORE               0U          // Core 0 (RI5CY) locking identifier
+
+void rt_hw_object_trytake( struct rt_object *object )
+{
+    SEMA42_Lock( OBJ_APP_SEMA42, OBJ_SEMA42_GATE, OBJ_LOCK_CORE );
+}
+
+void rt_hw_object_put( struct rt_object *object )
+{
+    SEMA42_Unlock( OBJ_APP_SEMA42, OBJ_SEMA42_GATE );
+}
+
 void rt_hw_board_init(void)
 {
     BOARD_InitPins();
     BOARD_BootClockRUN();
     BOARD_InitLedPin();
-    LED1_INIT(LOGIC_LED_ON);
+    LED1_INIT( LOGIC_LED_ON );
 
-    CLOCK_InitLpFll(&g_appScgLpFllConfig_BOARD_BootClockRUN);
+    CLOCK_InitLpFll( &g_appScgLpFllConfig_BOARD_BootClockRUN );
 
     // Small delay (~5 secs) to wait for an external debug TAP connection
     for( int i=0; i<20000000; i++ )  { }
 
-    MU_Init(APP_MU);
+    MU_Init( APP_MU );
     APP_InitDomain();
 
-    SEMA42_Init(APP_SEMA42);
-    SEMA42_ResetAllGates(APP_SEMA42);
+    SEMA42_Init( APP_SEMA42 );
+    SEMA42_ResetAllGates( APP_SEMA42 );
 
     // Boot Core 1 (CM0+)
-    MU_BootOtherCore(APP_MU, APP_CORE1_BOOT_MODE);
+    MU_BootOtherCore( APP_MU, APP_CORE1_BOOT_MODE );
     // Wait till Core 1 is Boot Up
-    while (BOOT_FLAG != MU_GetFlags(APP_MU)) { }
+    while( BOOT_FLAG != MU_GetFlags(APP_MU) ) { }
 
     INTMUX_Init(INTMUX0);
-    INTMUX_EnableInterrupt(INTMUX0, 0, PORTC_IRQn);
+    INTMUX_EnableInterrupt( INTMUX0, 0, PORTC_IRQn );
+
+    /* initialize intercore AMP syncronization */
+    rt_object_trytake_sethook( rt_hw_object_trytake );
+    rt_object_put_sethook( rt_hw_object_put );
 
     /* initialize hardware interrupt */
     rt_hw_uart_init();
     rt_hw_systick_init();
 
 #ifdef RT_USING_CONSOLE
-    rt_console_set_device(RT_CONSOLE_DEVICE_NAME);
+    rt_console_set_device( RT_CONSOLE_DEVICE_NAME );
 #endif /* RT_USING_CONSOLE */
 
 #ifdef RT_USING_HEAP
-    rt_system_heap_init(RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 1);
+    rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 1 );
 #endif
 
 #ifdef RT_USING_COMPONENTS_INIT

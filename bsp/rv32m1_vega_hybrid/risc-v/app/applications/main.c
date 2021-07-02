@@ -29,18 +29,18 @@ int main(int argc, char** argv)
     rt_kprintf("Hello RT-Thread from RISCV!\n");
     while(1)
     {
-        if( (i%20) == 0 )
+        if( (i%10) == 0 )
         {
             SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
-            LPUART_WriteByte(LPUART0, 'L');
+            //LPUART_WriteByte(LPUART0, 'L');
         } //endif
 
         rt_thread_delay( RT_TICK_PER_SECOND / 5 );
         LPUART_WriteByte(LPUART0, '+');
 
-        if( (i%20) == 19 )
+        if( (i%10) == 9 )
         {
-            LPUART_WriteByte(LPUART0, 'U');
+            //LPUART_WriteByte(LPUART0, 'U');
             SEMA42_Unlock(APP_SEMA42, SEMA42_GATE);
         } //endif
         i++;
