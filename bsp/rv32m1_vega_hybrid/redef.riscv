@@ -7,3 +7,7 @@ riscv___heap_start          __heap_start
 riscv_lfree                 lfree
 riscv_used_mem              used_mem
 riscv_max_mem               max_mem
+riscv_rt_hw_gate            rt_hw_gate
+riscv_heap_sem              heap_sem
+riscv_pth_table             pth_table
+riscv_global_mutex          global_mutex

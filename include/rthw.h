@@ -181,11 +181,23 @@ void rt_hw_secondary_cpu_up(void);
 void rt_hw_secondary_cpu_idle_exec(void);
 #else
 
+//(JAAS) Not SMP, but HYBRID !!!
+/*
 #define RT_DEFINE_SPINLOCK(x)
 #define RT_DECLARE_SPINLOCK(x)    rt_ubase_t x
 
 #define rt_hw_spin_lock(lock)     *(lock) = rt_hw_interrupt_disable()
 #define rt_hw_spin_unlock(lock)   rt_hw_interrupt_enable(*(lock))
+*/
+
+#define RT_DEFINE_SPINLOCK(x)     rt_ubase_t x ## _;
+#define RT_DECLARE_SPINLOCK(x)    rt_ubase_t x;
+
+extern void rt_hw_object_trytake(struct rt_object *object);
+extern void rt_hw_object_put(struct rt_object *object);
+
+#define rt_hw_spin_lock(lock)     do { *(lock) = rt_hw_interrupt_disable(); rt_hw_object_trytake((struct rt_object *) lock ## _); } while(0)
+#define rt_hw_spin_unlock(lock)   do { rt_hw_object_put((struct rt_object *) lock ## _); rt_hw_interrupt_enable(*(lock)); } while(0)
 
 #endif
 

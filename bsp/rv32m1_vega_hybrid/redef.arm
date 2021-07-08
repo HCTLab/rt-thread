@@ -2,3 +2,7 @@ arm___heap_start        __heap_start
 arm_lfree               lfree
 arm_used_mem            used_mem
 arm_max_mem             max_mem
+arm_rt_hw_gate          rt_hw_gate
+arm_heap_sem            heap_sem
+arm_pth_table           pth_table
+arm_global_mutex        global_mutex

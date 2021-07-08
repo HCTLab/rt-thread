@@ -712,6 +712,8 @@ struct rt_semaphore
 
     rt_uint16_t          value;                         /**< value of semaphore. */
     rt_uint16_t          reserved;                      /**< reserved field */
+
+    rt_ubase_t           spin;                          /**(JAAS) Reserved for AMP hybrid IPC */
 };
 typedef struct rt_semaphore *rt_sem_t;
 #endif

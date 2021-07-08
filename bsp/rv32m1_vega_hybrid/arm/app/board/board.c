@@ -27,8 +27,6 @@
 #define APP_MU                  MUB
 #define APP_SEMA42              SEMA420
 #define BOOT_FLAG               0x01U
-#define SEMA42_GATE             0U
-#define LOCK_CORE               1U
 
 
 /*******************************************************************************
@@ -141,18 +139,50 @@ void rt_hw_us_delay( rt_uint32_t us )
     // TBD
 }
 
+//#define HYBRID_DEBUG
 #define OBJ_APP_SEMA42              SEMA420     // HW instance
-#define OBJ_SEMA42_GATE             1U          // The SEMA42 gate (up to 15)
-#define OBJ_LOCK_CORE               1U          // Core 1 (CM0+) locking identifier
+#define OBJ_LOCK_CORE               1U          // Core 0 (ARM) locking identifier
+
+extern struct rt_object *rt_hw_gate[16];        // Assigned gates to objects
 
 void rt_hw_object_trytake( struct rt_object *object )
 {
-    SEMA42_Lock( OBJ_APP_SEMA42, OBJ_SEMA42_GATE, OBJ_LOCK_CORE );
+    int  g;
+    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
+    if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
+    if( g < 16 )
+    {
+#ifdef HYBRID_DEBUG
+        SEMA42_Lock( OBJ_APP_SEMA42, 1, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        rt_kprintf("%s Locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        SEMA42_Unlock( OBJ_APP_SEMA42, 1 );
+#endif
+        rt_hw_gate[g] = object;
+        SEMA42_Lock( OBJ_APP_SEMA42, 1<<g, OBJ_LOCK_CORE );
+    }
+    else
+    {
+        rt_kprintf("%s Locking GATE error [%p=no more gates]\n", RT_DEBUG_ARCH, object);
+    }
 }
 
 void rt_hw_object_put( struct rt_object *object )
 {
-    SEMA42_Unlock( OBJ_APP_SEMA42, OBJ_SEMA42_GATE );
+    int  g;
+    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Search object's gate
+    if( g < 16 )
+    {
+        SEMA42_Unlock( OBJ_APP_SEMA42, 1<<g );
+#ifdef HYBRID_DEBUG
+        SEMA42_Lock( OBJ_APP_SEMA42, 1, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        rt_kprintf("%s Unlocked GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        SEMA42_Unlock( OBJ_APP_SEMA42, 1 );
+#endif
+    }
+    else
+    {
+        rt_kprintf("%s Unlocked GATE [%p=no gate found]\n", RT_DEBUG_ARCH, object, 1<<g);
+    }
 }
 
 void rt_hw_board_init( void )
