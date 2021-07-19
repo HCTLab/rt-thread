@@ -12,7 +12,9 @@
  * 2013-06-18   aozima       add restore MSP feature.
  * 2013-11-04   bright       fixed hardfault bug for gcc.
  */
- 
+
+#include "rtconfig.h"
+
     .cpu    cortex-m0
     .fpu    softvfp
     .syntax unified
@@ -28,9 +30,15 @@
 /*
  * rt_base_t rt_hw_interrupt_disable();
  */
+#ifdef RT_USING_SMP
+    .global rt_hw_local_irq_disable
+    .type rt_hw_local_irq_disable, %function
+rt_hw_local_irq_disable:
+#else
     .global rt_hw_interrupt_disable
     .type rt_hw_interrupt_disable, %function
 rt_hw_interrupt_disable:
+#endif
     MRS     R0, PRIMASK
     CPSID   I
     BX      LR
@@ -38,9 +46,15 @@ rt_hw_interrupt_disable:
 /*
  * void rt_hw_interrupt_enable(rt_base_t level);
  */
+#ifdef RT_USING_SMP
+    .global rt_hw_local_irq_enable
+    .type rt_hw_local_irq_enable, %function
+rt_hw_local_irq_enable:
+#else
     .global rt_hw_interrupt_enable
     .type rt_hw_interrupt_enable, %function
 rt_hw_interrupt_enable:
+#endif
     MSR     PRIMASK, R0
     BX      LR
 
@@ -136,9 +150,9 @@ pendsv_exit:
     /* restore interrupt */
     MSR     PRIMASK, R2
 
-    MOVS    R0, #0x04
+    MOVS    R0, #0x03
     RSBS    R0, R0, #0x00
-    BX      R0
+    BX      R0                      /* EXC_RETURN = 0xFFFFFFFD accordind to DUI0662B section 2.3.6 */
 /*
  * void rt_hw_context_switch_to(rt_uint32 to);
  * R0 --> to

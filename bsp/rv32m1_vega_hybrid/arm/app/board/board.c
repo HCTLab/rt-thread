@@ -39,6 +39,9 @@
 
 #ifdef RT_USING_SMP
 
+void rt_hw_object_take(struct rt_object *object);
+void rt_hw_object_put(struct rt_object *object);
+
 int rt_hw_cpu_id( void )
 {
     return 0;  // Fixed by now
@@ -51,16 +54,21 @@ void rt_hw_spin_lock_init( rt_hw_spinlock_t *lock )
 
 void rt_hw_spin_lock( rt_hw_spinlock_t *lock )
 {
+    lock->slock = rt_hw_local_irq_disable();
+    rt_hw_object_take((struct rt_object *) lock);
     lock->tickets.owner--;
 }
 
 void rt_hw_spin_unlock( rt_hw_spinlock_t *lock )
 {
     lock->tickets.owner++;
+    rt_hw_object_put((struct rt_object *) lock);
+    rt_hw_local_irq_enable(lock->slock);
 }
 
 void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
 {
+    /*
     int idx;
 
     for( idx=0; idx<RT_CPUS_NR; idx ++ )
@@ -70,38 +78,34 @@ void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
             //clint_ipi_send( idx );
         }
     }
+    */
 }
-
-extern rt_base_t secondary_boot_flag;
 
 void rt_hw_secondary_cpu_up( void )
 {
-    mb();
-    secondary_boot_flag = 0xa55a;
 }
-
-extern void rt_hw_scondary_interrupt_init( void );
-extern int  rt_hw_tick_init( void );
-extern int  rt_hw_clint_ipi_enable( void );
 
 void secondary_cpu_c_start( void )
 {
     rt_hw_spin_lock(&_cpus_lock);
 
-    /* initialize interrupt controller */
+    /*
     rt_hw_scondary_interrupt_init();
 
     rt_hw_tick_init();
 
     rt_hw_clint_ipi_enable();
+    */
 
     rt_system_scheduler_start();
 }
 
 void rt_hw_secondary_cpu_idle_exec( void )
 {
-    //asm volatile ("wfi");
+    asm volatile ("wfi");
 }
+
+rt_thread_t rt_current_thread;
 
 #endif /*RT_USING_SMP*/
 
@@ -139,7 +143,7 @@ void rt_hw_us_delay( rt_uint32_t us )
     // TBD
 }
 
-//#define HYBRID_DEBUG
+#define HYBRID_DEBUG
 #define OBJ_APP_SEMA42              SEMA420     // HW instance
 #define OBJ_LOCK_CORE               1U          // Core 0 (ARM) locking identifier
 
@@ -152,12 +156,33 @@ void rt_hw_object_trytake( struct rt_object *object )
     if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
     if( g < 16 )
     {
+        rt_hw_gate[g] = object;
+#ifdef HYBRID_DEBUG
+        SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        rt_kprintf("%s Try locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
+#endif
+        SEMA42_TryLock( OBJ_APP_SEMA42, g, OBJ_LOCK_CORE );
+    }
+    else
+    {
+        rt_kprintf("%s Try locking GATE error [%p=no more gates]\n", RT_DEBUG_ARCH, object);
+    }
+}
+
+void rt_hw_object_take( struct rt_object *object )
+{
+    int  g;
+    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
+    if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
+    if( g < 16 )
+    {
+        rt_hw_gate[g] = object;
 #ifdef HYBRID_DEBUG
         SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
         rt_kprintf("%s Locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
         SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
 #endif
-        rt_hw_gate[g] = object;
         SEMA42_Lock( OBJ_APP_SEMA42, g, OBJ_LOCK_CORE );
     }
     else
@@ -202,20 +227,21 @@ void rt_hw_board_init( void )
 
     /* initialize intercore AMP syncronization */
     rt_object_trytake_sethook( rt_hw_object_trytake );
+    rt_object_take_sethook( rt_hw_object_take );
     rt_object_put_sethook( rt_hw_object_put );
 
     // Initialize hardware interrupt
     rt_hw_uart_init();
     rt_hw_systick_init();  // Core 0 uses LPIT0 and this core uses LPIT1
 
+#ifdef RT_USING_HEAP
+    rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 0 );  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
+#endif
+
 #ifdef RT_USING_CONSOLE
     // Note: rt_console_set_device() calls rt_serial_init() which calls uart_configure() which calls CLOCK_SetIpSrc()
     //       CLOCK_SetIpSrc() can assert when several clock configs mismatch
     rt_console_set_device( RT_CONSOLE_DEVICE_NAME );
-#endif
-
-#ifdef RT_USING_HEAP
-    rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 0 );  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
 #endif
 
 #ifdef RT_USING_COMPONENTS_INIT

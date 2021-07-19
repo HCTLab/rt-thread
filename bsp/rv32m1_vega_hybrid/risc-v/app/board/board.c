@@ -197,29 +197,37 @@ static void BOARD_InitLedPin(void)
 
 #ifdef RT_USING_SMP
 
+void rt_hw_object_take(struct rt_object *object);
+void rt_hw_object_put(struct rt_object *object);
+
 int rt_hw_cpu_id(void)
 {
-    return read_csr(mhartid);
-    //return 0;  // Fixed by now
+    //return read_csr(mhartid);
+    return 0;  // Fixed by now
 }
 
 void rt_hw_spin_lock_init(rt_hw_spinlock_t *lock)
 {
-    ((spinlock_t *)lock)->lock = 0;
+    lock->slock = 0;
 }
 
 void rt_hw_spin_lock(rt_hw_spinlock_t *lock)
 {
+    lock->slock = rt_hw_local_irq_disable();
+    rt_hw_object_take((struct rt_object *) lock);
     lock->tickets.owner--;
 }
 
 void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
 {
     lock->tickets.owner++;
+    rt_hw_object_put((struct rt_object *) lock);
+    rt_hw_local_irq_enable(lock->slock);
 }
 
 void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
 {
+    /*
     int idx;
 
     for (idx = 0; idx < RT_CPUS_NR; idx ++)
@@ -229,30 +237,24 @@ void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
             //clint_ipi_send(idx);
         }
     }
+    */
 }
-
-extern rt_base_t secondary_boot_flag;
 
 void rt_hw_secondary_cpu_up(void)
 {
-    mb();
-    secondary_boot_flag = 0xa55a;
 }
-
-extern void rt_hw_scondary_interrupt_init(void);
-extern int  rt_hw_tick_init(void);
-extern int  rt_hw_clint_ipi_enable(void);
 
 void secondary_cpu_c_start(void)
 {
     rt_hw_spin_lock(&_cpus_lock);
 
-    /* initialize interrupt controller */
+    /*
     rt_hw_scondary_interrupt_init();
 
     rt_hw_tick_init();
 
     rt_hw_clint_ipi_enable();
+    */
 
     rt_system_scheduler_start();
 }
@@ -294,12 +296,33 @@ void rt_hw_object_trytake( struct rt_object *object )
     if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
     if( g < 16 )
     {
+        rt_hw_gate[g] = object;
+#ifdef HYBRID_DEBUG
+        SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        rt_kprintf("%s Try locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
+#endif
+        SEMA42_TryLock( OBJ_APP_SEMA42, g, OBJ_LOCK_CORE );
+    }
+    else
+    {
+        rt_kprintf("%s Try locking GATE error [%p=no more gates]\n", RT_DEBUG_ARCH, object);
+    }
+}
+
+void rt_hw_object_take( struct rt_object *object )
+{
+    int  g;
+    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
+    if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
+    if( g < 16 )
+    {
+        rt_hw_gate[g] = object;
 #ifdef HYBRID_DEBUG
         SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
         rt_kprintf("%s Locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
         SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
 #endif
-        rt_hw_gate[g] = object;
         SEMA42_Lock( OBJ_APP_SEMA42, g, OBJ_LOCK_CORE );
     }
     else
@@ -345,29 +368,34 @@ void rt_hw_board_init(void)
     SEMA42_Init( APP_SEMA42 );
     SEMA42_ResetAllGates( APP_SEMA42 );
 
-    // Boot Core 1 (CM0+)
-    MU_BootOtherCore( APP_MU, APP_CORE1_BOOT_MODE );
-    // Wait till Core 1 is Boot Up
-    while( BOOT_FLAG != MU_GetFlags(APP_MU) ) { }
-
+    /* RFU
     INTMUX_Init(INTMUX0);
     INTMUX_EnableInterrupt( INTMUX0, 0, PORTC_IRQn );
+    */
 
     /* initialize intercore AMP syncronization */
     rt_object_trytake_sethook( rt_hw_object_trytake );
+    rt_object_take_sethook( rt_hw_object_take );
     rt_object_put_sethook( rt_hw_object_put );
 
     /* initialize hardware interrupt */
     rt_hw_uart_init();
     rt_hw_systick_init();
 
-#ifdef RT_USING_CONSOLE
-    rt_console_set_device( RT_CONSOLE_DEVICE_NAME );
-#endif /* RT_USING_CONSOLE */
-
 #ifdef RT_USING_HEAP
     rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 1 );
 #endif
+
+    // Boot Core 1 (CM0+)
+    MU_BootOtherCore( APP_MU, APP_CORE1_BOOT_MODE );
+    // Wait till Core 1 is Boot Up
+    while( BOOT_FLAG != MU_GetFlags(APP_MU) ) { }
+
+    //while(1);  // Only ARM runs
+
+#ifdef RT_USING_CONSOLE
+    rt_console_set_device( RT_CONSOLE_DEVICE_NAME );
+#endif /* RT_USING_CONSOLE */
 
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();

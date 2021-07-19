@@ -20,7 +20,7 @@
 **     Copyright 2016 Freescale Semiconductor, Inc.
 **     Copyright 2016-2018 NXP
 **     All rights reserved.
-**     
+**
 **     SPDX-License-Identifier: BSD-3-Clause
 **
 **     http:                 www.nxp.com
@@ -145,7 +145,7 @@ void SystemSetupSystick (uint32_t tickRateHz, uint32_t intPriority);
 void SystemClearSystickFlag (void);
 
 
-#define SysTick_Handler LPIT0_IRQHandler
+#define SysTick_Handler LPIT1_IRQHandler
 
 
 #ifdef __cplusplus

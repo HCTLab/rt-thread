@@ -43,7 +43,7 @@ static void *rw_thread( void *parameter )
         {
             pthread_mutex_lock( &global_mutex );
             //SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
-            //LPUART_WriteByte(LPUART0, data+1);
+            LPUART_WriteByte(LPUART0, data+1);
         } //endif
 
         rt_thread_delay( RT_TICK_PER_SECOND / 5 );
@@ -52,7 +52,7 @@ static void *rw_thread( void *parameter )
 
         if( (i%10) == 9 )
         {
-            //LPUART_WriteByte(LPUART0, data-1);
+            LPUART_WriteByte(LPUART0, data-1);
             //SEMA42_Unlock(APP_SEMA42, SEMA42_GATE);
             pthread_mutex_unlock( &global_mutex );
         } //endif
@@ -70,6 +70,8 @@ int main( int argc, char **argv )
     char  t1 = '7';
     //char  t2 = '0';
 
+    LPUART_WriteByte(LPUART0, '!');
+
     // Define thread stack size
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;
@@ -83,6 +85,7 @@ int main( int argc, char **argv )
     // Do not release this thread stack (thread couldn't read parameters!) till threads exit
     pthread_join( rwthread1, NULL );
     //pthread_join( rwthread2, NULL );
+    //while(1)  rt_thread_delay(RT_TICK_PER_SECOND);
 
     return 0;
 }

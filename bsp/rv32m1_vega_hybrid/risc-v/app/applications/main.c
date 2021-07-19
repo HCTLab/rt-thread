@@ -26,7 +26,7 @@ static pthread_t                rwthread1;
 //static pthread_t                rwthread2;
 
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
-pthread_mutex_t                 global_mutex;
+pthread_mutex_t                 global_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 static void *rw_thread( void *parameter )
 {
@@ -41,7 +41,7 @@ static void *rw_thread( void *parameter )
         {
             pthread_mutex_lock( &global_mutex );
             //SEMA42_Lock(APP_SEMA42, SEMA42_GATE, LOCK_CORE);
-            //LPUART_WriteByte(LPUART0, data+1);
+            LPUART_WriteByte(LPUART0, data+1);
         } //endif
 
         rt_thread_delay( RT_TICK_PER_SECOND / 5 );
@@ -50,7 +50,7 @@ static void *rw_thread( void *parameter )
 
         if( (i%10) == 9 )
         {
-            //LPUART_WriteByte(LPUART0, data-1);
+            LPUART_WriteByte(LPUART0, data-1);
             //SEMA42_Unlock(APP_SEMA42, SEMA42_GATE);
             pthread_mutex_unlock( &global_mutex );
         } //endif
@@ -64,12 +64,14 @@ static void *rw_thread( void *parameter )
 
 int main(int argc, char** argv)
 {
-    pthread_attr_t   attr;
+    pthread_mutexattr_t     mattr;
+    pthread_attr_t          attr;
     char  t1 = '1';
     //char  t2 = '4';
 
     // Init common architecture objects
-    pthread_mutex_init( &global_mutex, NULL );
+    mattr = PTHREAD_MUTEX_RECURSIVE;
+    pthread_mutex_init( &global_mutex, &mattr );
 
     // Define thread stack size
     memset( &attr, 0, sizeof(attr) );
@@ -84,6 +86,7 @@ int main(int argc, char** argv)
     // Do not release this thread stack (thread couldn't read parameters!) till threads exit
     pthread_join( rwthread1, NULL );
     //pthread_join( rwthread2, NULL );
+    //while(1)  rt_thread_delay(RT_TICK_PER_SECOND);
 
     return 0;
 }
