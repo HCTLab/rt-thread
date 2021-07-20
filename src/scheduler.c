@@ -243,11 +243,12 @@ void rt_system_scheduler_start(void)
 
 #ifdef RT_USING_SMP
     to_thread->oncpu = rt_hw_cpu_id();
+    rt_cpu_self()->current_thread = to_thread;  //(JAAS) Important
 #else
     rt_current_thread = to_thread;
 #endif /* RT_USING_SMP */
 
-    rt_schedule_remove_thread(to_thread);
+    //rt_schedule_remove_thread(to_thread);  //(JAAS) Not working well in CM0+
     to_thread->stat = RT_THREAD_RUNNING;
 
     /* switch to new thread */
@@ -350,6 +351,7 @@ void rt_schedule(void)
             {
                 /* if the destination thread is not the same as current thread */
                 pcpu->current_priority = (rt_uint8_t)highest_ready_priority;
+                pcpu->current_thread = to_thread;  //(JAAS) Important !!!
 
                 RT_OBJECT_HOOK_CALL(rt_scheduler_hook, (current_thread, to_thread));
 

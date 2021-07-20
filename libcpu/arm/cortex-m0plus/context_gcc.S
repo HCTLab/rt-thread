@@ -55,6 +55,7 @@ rt_hw_local_irq_enable:
     .type rt_hw_interrupt_enable, %function
 rt_hw_interrupt_enable:
 #endif
+/*  CPSIE   I               */ /*(JAAS) Equivalent to MSR PRIMASK, #0 */
     MSR     PRIMASK, R0
     BX      LR
 
@@ -113,7 +114,7 @@ PendSV_Handler:
     LDR     R0, =rt_interrupt_from_thread
     LDR     R1, [R0]
     CMP     R1, #0x00
-    BEQ     switch_to_thread    /* skip register save at the first time */
+    BEQ     switch_to_thread        /* skip register save at the first time */
 
 	MRS     R1, PSP                 /* get from thread stack pointer */
 
@@ -152,7 +153,7 @@ pendsv_exit:
 
     MOVS    R0, #0x03
     RSBS    R0, R0, #0x00
-    BX      R0                      /* EXC_RETURN = 0xFFFFFFFD accordind to DUI0662B section 2.3.6 */
+    BX      R0                   /* EXC_RETURN = 0xFFFFFFFD accordind to DUI0662B section 2.3.6 */
 /*
  * void rt_hw_context_switch_to(rt_uint32 to);
  * R0 --> to
@@ -177,7 +178,7 @@ rt_hw_context_switch_to:
     LDR     R0, =NVIC_SHPR3
     LDR     R1, =NVIC_PENDSV_PRI
     LDR     R2, [R0,#0x00]       /* read */
-    ORRS    R1, R1, R2             /* modify */
+    ORRS    R1, R1, R2           /* modify */
     STR     R1, [R0]             /* write-back */
 
     LDR     R0, =NVIC_INT_CTRL               /* trigger the PendSV exception (causes context switch) */
@@ -192,11 +193,11 @@ rt_hw_context_switch_to:
     MSR     MSP, R0
 
     /* enable interrupts at processor level */
-    CPSIE   I
+    CPSIE   I                    /*(JAAS) Equivalent to MSR PRIMASK, #0 */
 
     /* never reach here! */
 
-/* compatible with old version */
+    /* compatible with old version */
     .global rt_hw_interrupt_thread_switch
     .type rt_hw_interrupt_thread_switch, %function
 rt_hw_interrupt_thread_switch:

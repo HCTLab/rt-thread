@@ -83,7 +83,10 @@
 do                                                                            \
 {                                                                             \
     if (type)                                                                 \
+    {                                                                         \
+        rt_kprintf( "%s", RT_DEBUG_ARCH );                                    \
         rt_kprintf message;                                                   \
+    }                                                                         \
 }                                                                             \
 while (0)
 

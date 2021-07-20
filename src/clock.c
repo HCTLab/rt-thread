@@ -77,15 +77,24 @@ void rt_tick_increase(void)
     /* check time slice */
     thread = rt_thread_self();
 
-    -- thread->remaining_tick;
-    if (thread->remaining_tick == 0)
-    {
-        /* change to initialized tick */
-        thread->remaining_tick = thread->init_tick;
-        thread->stat |= RT_THREAD_STAT_YIELD;
+    /*(JAAS) Sometimes thread=NULL, specially if a tick occurs between first thread and rt_system_scheduler_start() */
 
-        rt_hw_interrupt_enable(level);
-        rt_schedule();
+    if( thread != NULL )
+    {
+        -- thread->remaining_tick;
+        if (thread->remaining_tick == 0)
+        {
+            /* change to initialized tick */
+            thread->remaining_tick = thread->init_tick;
+            thread->stat |= RT_THREAD_STAT_YIELD;
+
+            rt_hw_interrupt_enable(level);
+            rt_schedule();
+        }
+        else
+        {
+            rt_hw_interrupt_enable(level);
+        }
     }
     else
     {

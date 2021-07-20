@@ -184,6 +184,8 @@ static void pthread_entry_stub(void *parameter)
     ptd->return_value = value;
 }
 
+rt_uint16_t pthread_number = 0;  //(JAAS)
+
 int pthread_create(pthread_t            *pid,
                    const pthread_attr_t *attr,
                    void *(*start)(void *), void *parameter)
@@ -191,7 +193,7 @@ int pthread_create(pthread_t            *pid,
     int ret = 0;
     void *stack;
     char name[RT_NAME_MAX];
-    static rt_uint16_t pthread_number = 0;
+    /* static rt_uint16_t pthread_number = 0; */  //(JAAS) Must be shared with other processors
 
     pthread_t pth_id;
     _pthread_data_t *ptd;
@@ -274,6 +276,11 @@ int pthread_create(pthread_t            *pid,
         ret = EINVAL;
         goto __exit;
     }
+
+#ifdef RT_USING_SMP
+    //(JAAS) Bind new pthread to a CPU of a specific arch
+    rt_thread_control(ptd->tid, RT_THREAD_CTRL_BIND_CPU, rt_hw_cpu_id());
+#endif /* RT_USING_SMP */
 
     /* set pthread id */
     *pid = pth_id;

@@ -7,7 +7,7 @@ MEMORY
   m_vector_arm          (RX)  : ORIGIN = 0x01000000, LENGTH = 0x00040000
   m_vector_riscv        (RX)  : ORIGIN = 0x000FFF00, LENGTH = 0x00000100
   m_text                (RX)  : ORIGIN = 0x00000000, LENGTH = 0x000FFF00
-  m_data                (RW)  : ORIGIN = 0x09000000, LENGTH = 0x00020000 - 0x1800
+  m_data                (RW)  : ORIGIN = 0x20000000, LENGTH = 0x00020000 - 0x1800
 }
 
 /* Define output sections */

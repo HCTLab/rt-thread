@@ -77,6 +77,7 @@ int main(int argc, char** argv)
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;
     attr.stacksize = 4096;
+    attr.schedparam.sched_priority = RT_MAIN_THREAD_PRIORITY;
 
     pthread_create( &rwthread1, &attr, rw_thread, &t1 );
     //rt_kprintf( "%s Created thread (%ld)\n", RT_DEBUG_ARCH, rwthread1 );

@@ -203,7 +203,7 @@ void rt_hw_object_put(struct rt_object *object);
 int rt_hw_cpu_id(void)
 {
     //return read_csr(mhartid);
-    return 0;  // Fixed by now
+    return 0;  // Fixed by now according to HYBRID architecture
 }
 
 void rt_hw_spin_lock_init(rt_hw_spinlock_t *lock)
@@ -244,21 +244,6 @@ void rt_hw_secondary_cpu_up(void)
 {
 }
 
-void secondary_cpu_c_start(void)
-{
-    rt_hw_spin_lock(&_cpus_lock);
-
-    /*
-    rt_hw_scondary_interrupt_init();
-
-    rt_hw_tick_init();
-
-    rt_hw_clint_ipi_enable();
-    */
-
-    rt_system_scheduler_start();
-}
-
 void rt_hw_secondary_cpu_idle_exec(void)
 {
     asm volatile ("wfi");
@@ -269,7 +254,7 @@ void rt_hw_secondary_cpu_idle_exec(void)
 void rt_hw_cpu_shutdown()
 {
     rt_uint32_t level;
-    rt_kprintf("shutdown...\n");
+    rt_kprintf("Shutdown...\n");
 
     level = rt_hw_interrupt_disable();
     while (level)

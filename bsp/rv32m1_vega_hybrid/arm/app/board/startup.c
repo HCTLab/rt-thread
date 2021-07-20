@@ -67,6 +67,11 @@ void rt_application_init(void)
     (void)result;
 #endif
 
+#ifdef RT_USING_SMP
+    //(JAAS) Bind main thread to a CPU of a specific arch
+    rt_thread_control(tid, RT_THREAD_CTRL_BIND_CPU, rt_hw_cpu_id());
+#endif /* RT_USING_SMP */
+
     rt_thread_startup(tid);
 }
 

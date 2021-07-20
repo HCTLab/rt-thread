@@ -226,7 +226,7 @@ void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)
     /* point to begin address of heap */
     heap_ptr = (rt_uint8_t *)begin_align;
 
-    RT_DEBUG_LOG(RT_DEBUG_MEM, ("%s mem init, heap begin address 0x%x, size %d\n", RT_DEBUG_ARCH,
+    RT_DEBUG_LOG(RT_DEBUG_MEM, ("mem init, heap begin address 0x%x, size %d\n",
                                 (rt_ubase_t)heap_ptr, mem_size_aligned));
 
     /* initialize the start of the heap */
@@ -282,17 +282,17 @@ void *rt_malloc(rt_size_t size)
     RT_DEBUG_NOT_IN_INTERRUPT;
 
     if (size != RT_ALIGN(size, RT_ALIGN_SIZE))
-        RT_DEBUG_LOG(RT_DEBUG_MEM, ("%s malloc size %d, but align to %d\n", RT_DEBUG_ARCH,
+        RT_DEBUG_LOG(RT_DEBUG_MEM, ("malloc size %d, but align to %d\n",
                                     size, RT_ALIGN(size, RT_ALIGN_SIZE)));
     else
-        RT_DEBUG_LOG(RT_DEBUG_MEM, ("%s malloc size %d\n", RT_DEBUG_ARCH, size));
+        RT_DEBUG_LOG(RT_DEBUG_MEM, ("malloc size %d\n", size));
 
     /* alignment size */
     size = RT_ALIGN(size, RT_ALIGN_SIZE);
 
     if (size > mem_size_aligned)
     {
-        RT_DEBUG_LOG(RT_DEBUG_MEM, ("%s no memory\n", RT_DEBUG_ARCH));
+        RT_DEBUG_LOG(RT_DEBUG_MEM, ("no memory\n"));
 
         return RT_NULL;
     }
@@ -394,7 +394,7 @@ void *rt_malloc(rt_size_t size)
             RT_ASSERT((((rt_ubase_t)mem) & (RT_ALIGN_SIZE - 1)) == 0);
 
             RT_DEBUG_LOG(RT_DEBUG_MEM,
-                         ("%s allocate memory at 0x%x, size: %d\n", RT_DEBUG_ARCH,
+                         ("allocate memory at 0x%x, size: %d\n",
                           (rt_ubase_t)((rt_uint8_t *)mem + SIZEOF_STRUCT_MEM),
                           (rt_ubase_t)(mem->next - ((rt_uint8_t *)mem - heap_ptr))));
 
@@ -433,7 +433,7 @@ void *rt_realloc(void *rmem, rt_size_t newsize)
     newsize = RT_ALIGN(newsize, RT_ALIGN_SIZE);
     if (newsize > mem_size_aligned)
     {
-        RT_DEBUG_LOG(RT_DEBUG_MEM, ("%s realloc: out of memory\n", RT_DEBUG_ARCH));
+        RT_DEBUG_LOG(RT_DEBUG_MEM, ("realloc: out of memory\n"));
 
         return RT_NULL;
     }
@@ -569,7 +569,7 @@ void rt_free(void *rmem)
     if ((rt_uint8_t *)rmem < (rt_uint8_t *)heap_ptr ||
         (rt_uint8_t *)rmem >= (rt_uint8_t *)heap_end)
     {
-        RT_DEBUG_LOG(RT_DEBUG_MEM, ("%s illegal memory\n", RT_DEBUG_ARCH));
+        RT_DEBUG_LOG(RT_DEBUG_MEM, ("illegal memory\n"));
 
         return;
     }

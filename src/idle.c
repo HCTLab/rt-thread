@@ -39,7 +39,9 @@
 #endif /* IDLE_THREAD_STACK_SIZE */
 
 #ifdef RT_USING_SMP
-#define _CPUS_NR                RT_CPUS_NR
+//(JAAS) On hybrid  architecture, currently a single CPU per arch is supported
+//#define _CPUS_NR                RT_CPUS_NR
+#define _CPUS_NR                1
 #else
 #define _CPUS_NR                1
 #endif /* RT_USING_SMP */
@@ -245,7 +247,9 @@ void rt_thread_idle_init(void)
                 RT_THREAD_PRIORITY_MAX - 1,
                 32);
 #ifdef RT_USING_SMP
-        rt_thread_control(&idle[i], RT_THREAD_CTRL_BIND_CPU, (void*)i);
+        //(JAAS) Bind all IDLE threads to CPUs of a specific arch
+        //rt_thread_control(&idle[i], RT_THREAD_CTRL_BIND_CPU, (void*)i);
+        rt_thread_control(&idle[i], RT_THREAD_CTRL_BIND_CPU, rt_hw_cpu_id());
 #endif /* RT_USING_SMP */
         /* startup */
         rt_thread_startup(&idle[i]);

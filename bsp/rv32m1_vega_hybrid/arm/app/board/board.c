@@ -44,7 +44,7 @@ void rt_hw_object_put(struct rt_object *object);
 
 int rt_hw_cpu_id( void )
 {
-    return 0;  // Fixed by now
+    return 1;  // Fixed by now according to HYBRID architecture
 }
 
 void rt_hw_spin_lock_init( rt_hw_spinlock_t *lock )
@@ -83,21 +83,6 @@ void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
 
 void rt_hw_secondary_cpu_up( void )
 {
-}
-
-void secondary_cpu_c_start( void )
-{
-    rt_hw_spin_lock(&_cpus_lock);
-
-    /*
-    rt_hw_scondary_interrupt_init();
-
-    rt_hw_tick_init();
-
-    rt_hw_clint_ipi_enable();
-    */
-
-    rt_system_scheduler_start();
 }
 
 void rt_hw_secondary_cpu_idle_exec( void )
