@@ -52,14 +52,14 @@ void rt_application_init(void)
     rt_thread_t tid;
 
 #ifdef RT_USING_HEAP
-    tid = rt_thread_create("main", main_thread_entry, RT_NULL,
+    tid = rt_thread_create("amain", main_thread_entry, RT_NULL,
                            RT_MAIN_THREAD_STACK_SIZE, RT_MAIN_THREAD_PRIORITY, 20);
     RT_ASSERT(tid != RT_NULL);
 #else
     rt_err_t result;
 
     tid = &main_thread;
-    result = rt_thread_init(tid, "main", main_thread_entry, RT_NULL,
+    result = rt_thread_init(tid, "amain", main_thread_entry, RT_NULL,
                             main_stack, sizeof(main_stack), RT_MAIN_THREAD_PRIORITY, 20);
     RT_ASSERT(result == RT_EOK);
 

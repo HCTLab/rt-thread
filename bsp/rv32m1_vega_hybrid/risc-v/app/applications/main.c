@@ -69,9 +69,14 @@ int main(int argc, char** argv)
     char  t1 = '1';
     //char  t2 = '4';
 
+    LPUART_WriteByte(LPUART0, '#');
+
     // Init common architecture objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
     pthread_mutex_init( &global_mutex, &mattr );
+
+    //(JAAS) Debugging ARM scheduler!
+    //while(1);
 
     // Define thread stack size
     memset( &attr, 0, sizeof(attr) );

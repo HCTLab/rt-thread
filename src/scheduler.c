@@ -602,6 +602,7 @@ void rt_scheduler_do_irq_switch(void *context)
                 /* if the destination thread is not the same as current thread */
 
                 pcpu->current_priority = (rt_uint8_t)highest_ready_priority;
+                pcpu->current_thread = to_thread;  //(JAAS) Important
 
                 RT_OBJECT_HOOK_CALL(rt_scheduler_hook, (current_thread, to_thread));
 
@@ -914,8 +915,9 @@ void rt_exit_critical(void)
     current_thread->critical_lock_nest --;
 
     current_thread->cpus_lock_nest--;
-    if (current_thread->cpus_lock_nest == 0)
+    if (current_thread->cpus_lock_nest <= 0)  //(JAAS)
     {
+        current_thread->cpus_lock_nest = 0;  //(JAAS)
         current_thread->scheduler_lock_nest --;
         rt_hw_spin_unlock(&_cpus_lock);
     }

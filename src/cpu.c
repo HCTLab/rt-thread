@@ -158,10 +158,16 @@ void rt_cpus_unlock(rt_base_t level)
     {
         pcpu->current_thread->cpus_lock_nest--;
 
-        if (pcpu->current_thread->cpus_lock_nest == 0)
+        if (pcpu->current_thread->cpus_lock_nest <= 0)  //(JAAS)
         {
+            pcpu->current_thread->cpus_lock_nest = 0;  //(JAAS)
             pcpu->current_thread->scheduler_lock_nest--;
             rt_hw_spin_unlock(&_cpus_lock);
+        }
+
+        if( pcpu->current_thread->scheduler_lock_nest <= 0 )  //(JAAS)
+        {
+            pcpu->current_thread->scheduler_lock_nest = 0;
         }
     }
     rt_hw_local_irq_enable(level);

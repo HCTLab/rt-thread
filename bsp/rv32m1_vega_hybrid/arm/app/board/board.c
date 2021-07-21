@@ -128,7 +128,7 @@ void rt_hw_us_delay( rt_uint32_t us )
     // TBD
 }
 
-#define HYBRID_DEBUG
+//#define HYBRID_DEBUG
 #define OBJ_APP_SEMA42              SEMA420     // HW instance
 #define OBJ_LOCK_CORE               1U          // Core 0 (ARM) locking identifier
 

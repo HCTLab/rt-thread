@@ -20,8 +20,9 @@
 #include <rthw.h>
 #include <rtthread.h>
 
+//(JAAS) Each CPU on an hybrid configuration, have a custom tick counter
 #ifdef RT_USING_SMP
-#define rt_tick rt_cpu_index(0)->tick
+#define rt_tick rt_cpu_index(rt_hw_cpu_id())->tick
 #else
 static volatile rt_tick_t rt_tick = 0;
 #endif /* RT_USING_SMP */

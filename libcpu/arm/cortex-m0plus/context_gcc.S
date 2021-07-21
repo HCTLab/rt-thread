@@ -59,16 +59,33 @@ rt_hw_interrupt_enable:
     MSR     PRIMASK, R0
     BX      LR
 
+/* (JAAS) Modified to support SMP
+ * void rt_hw_context_switch_interrupt(void *context, rt_ubase_t from, rt_ubase_t to, struct rt_thread *to_thread);
+ * R0 --> context
+ * R1 --> from
+ * R2 --> to
+ * R3 --> to_thread
+ */
+    .global rt_hw_context_switch_interrupt
+    .type rt_hw_context_switch_interrupt, %function
+rt_hw_context_switch_interrupt:
+
+    /* Prepare arguments to call 'rt_hw_context_switch()' in interrupt mode */
+    MOV     R0, R1
+    MOV     R1, R2
+
+    /* set interrupt flag to 1 */
+    LDR     R3, =rt_thread_switch_interrupt_flag
+    MOVS    R2, #1
+    STR     R2, [R3]
+
 /*
  * void rt_hw_context_switch(rt_uint32 from, rt_uint32 to);
  * R0 --> from
  * R1 --> to
  */
-    .global rt_hw_context_switch_interrupt
-    .type rt_hw_context_switch_interrupt, %function
     .global rt_hw_context_switch
     .type rt_hw_context_switch, %function
-rt_hw_context_switch_interrupt:
 rt_hw_context_switch:
     /* set rt_thread_switch_interrupt_flag to 1 */
     LDR     R2, =rt_thread_switch_interrupt_flag

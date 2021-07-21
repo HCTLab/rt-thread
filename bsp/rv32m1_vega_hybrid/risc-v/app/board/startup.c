@@ -52,20 +52,25 @@ void rt_application_init(void)
     rt_thread_t tid;
 
 #ifdef RT_USING_HEAP
-    tid = rt_thread_create("main", main_thread_entry, RT_NULL,
+    tid = rt_thread_create("rmain", main_thread_entry, RT_NULL,
                            RT_MAIN_THREAD_STACK_SIZE, RT_MAIN_THREAD_PRIORITY, 20);
     RT_ASSERT(tid != RT_NULL);
 #else
     rt_err_t result;
 
     tid = &main_thread;
-    result = rt_thread_init(tid, "main", main_thread_entry, RT_NULL,
+    result = rt_thread_init(tid, "rmain", main_thread_entry, RT_NULL,
                             main_stack, sizeof(main_stack), RT_MAIN_THREAD_PRIORITY, 20);
     RT_ASSERT(result == RT_EOK);
 
     /* if not define RT_USING_HEAP, using to eliminate the warning */
     (void)result;
 #endif
+
+#ifdef RT_USING_SMP
+    //(JAAS) Bind main thread to a CPU of a specific arch
+    rt_thread_control(tid, RT_THREAD_CTRL_BIND_CPU, rt_hw_cpu_id());
+#endif /* RT_USING_SMP */
 
     rt_thread_startup(tid);
 }
