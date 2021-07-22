@@ -11,7 +11,7 @@
 #include <rtthread.h>
 
 #ifdef RT_USING_SMP
-static struct rt_cpu rt_cpus[RT_CPUS_NR];
+/* static */ struct rt_cpu rt_cpus[RT_CPUS_NR];  //(JAAS) This must be a shared variable on hybrid systems
 rt_hw_spinlock_t _cpus_lock;
 
 /*

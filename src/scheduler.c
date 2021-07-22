@@ -198,7 +198,8 @@ void rt_system_scheduler_init(void)
         rt_list_init(&rt_thread_priority_table[offset]);
     }
 #ifdef RT_USING_SMP
-    for (cpu = 0; cpu < RT_CPUS_NR; cpu++)
+    //for (cpu = 0; cpu < RT_CPUS_NR; cpu++)  //(JAAS) Only initialize custom architecture CPU
+    cpu = rt_hw_cpu_id();  //(JAAS) Only initialize custom architecture CPU
     {
         struct rt_cpu *pcpu =  rt_cpu_index(cpu);
         for (offset = 0; offset < RT_THREAD_PRIORITY_MAX; offset ++)

@@ -198,8 +198,8 @@ void rt_hw_secondary_cpu_idle_exec(void);
 extern void rt_hw_object_take(struct rt_object *object);
 extern void rt_hw_object_put(struct rt_object *object);
 
-#define rt_hw_spin_lock(lock)     do { *(lock) = rt_hw_interrupt_disable(); rt_hw_object_take((struct rt_object *) lock ## _); } while(0)
-#define rt_hw_spin_unlock(lock)   do { rt_hw_object_put((struct rt_object *) lock ## _); rt_hw_interrupt_enable(*(lock)); } while(0)
+#define rt_hw_spin_lock(lock)     do { rt_hw_object_take((struct rt_object *) lock ## _); *(lock) = rt_hw_interrupt_disable(); } while(0)
+#define rt_hw_spin_unlock(lock)   do { rt_hw_interrupt_enable(*(lock)); rt_hw_object_put((struct rt_object *) lock ## _); } while(0)
 
 #endif
 

@@ -54,16 +54,16 @@ void rt_hw_spin_lock_init( rt_hw_spinlock_t *lock )
 
 void rt_hw_spin_lock( rt_hw_spinlock_t *lock )
 {
-    lock->slock = rt_hw_local_irq_disable();
     rt_hw_object_take((struct rt_object *) lock);
+    lock->slock = rt_hw_local_irq_disable();
     lock->tickets.owner--;
 }
 
 void rt_hw_spin_unlock( rt_hw_spinlock_t *lock )
 {
     lock->tickets.owner++;
-    rt_hw_object_put((struct rt_object *) lock);
     rt_hw_local_irq_enable(lock->slock);
+    rt_hw_object_put((struct rt_object *) lock);
 }
 
 void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
@@ -128,7 +128,7 @@ void rt_hw_us_delay( rt_uint32_t us )
     // TBD
 }
 
-//#define HYBRID_DEBUG
+#define HYBRID_DEBUG
 #define OBJ_APP_SEMA42              SEMA420     // HW instance
 #define OBJ_LOCK_CORE               1U          // Core 0 (ARM) locking identifier
 
@@ -143,9 +143,9 @@ void rt_hw_object_trytake( struct rt_object *object )
     {
         rt_hw_gate[g] = object;
 #ifdef HYBRID_DEBUG
-        SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
-        rt_kprintf("%s Try locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
-        SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
+        //SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        if(g>2) rt_kprintf("%s Try locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        //SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
 #endif
         SEMA42_TryLock( OBJ_APP_SEMA42, g, OBJ_LOCK_CORE );
     }
@@ -164,9 +164,9 @@ void rt_hw_object_take( struct rt_object *object )
     {
         rt_hw_gate[g] = object;
 #ifdef HYBRID_DEBUG
-        SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
-        rt_kprintf("%s Locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
-        SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
+        //SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        if(g>2) rt_kprintf("%s Locking GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        //SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
 #endif
         SEMA42_Lock( OBJ_APP_SEMA42, g, OBJ_LOCK_CORE );
     }
@@ -184,9 +184,9 @@ void rt_hw_object_put( struct rt_object *object )
     {
         SEMA42_Unlock( OBJ_APP_SEMA42, g );
 #ifdef HYBRID_DEBUG
-        SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
-        rt_kprintf("%s Unlocked GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
-        SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
+        //SEMA42_Lock( OBJ_APP_SEMA42, 0, OBJ_LOCK_CORE );  // 0=Reserved gate for debugging
+        if(g>2) rt_kprintf("%s Unlocked GATE [%p=%d]\n", RT_DEBUG_ARCH, object, g);
+        //SEMA42_Unlock( OBJ_APP_SEMA42, 0 );
 #endif
     }
     else
