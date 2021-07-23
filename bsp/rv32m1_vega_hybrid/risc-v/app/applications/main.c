@@ -92,7 +92,7 @@ int main(int argc, char** argv)
     // Do not release this thread stack (thread couldn't read parameters!) till threads exit
     //pthread_join( rwthread1, NULL );
     //pthread_join( rwthread2, NULL );
-    while(1)  rt_thread_delay(RT_TICK_PER_SECOND);
+    while(1)  rt_thread_delay(RT_TICK_PER_SECOND*5);
 
     return 0;
 }
