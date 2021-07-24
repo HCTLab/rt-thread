@@ -191,7 +191,7 @@ extern void rt_system_power_manager(void);
 static void rt_thread_idle_entry(void *parameter)
 {
 #ifdef RT_USING_SMP
-    if (rt_hw_cpu_id() != 0)
+    //if (rt_hw_cpu_id() != 0)  //(JAAS) Just idle_exec all CPUs
     {
         while (1)
         {

@@ -267,7 +267,7 @@ void rt_hw_us_delay( rt_uint32_t us )
 }
 
 //#define HYBRID_DEBUG
-#define HYBRID_DEBUG_MIN_GATE       0
+#define HYBRID_DEBUG_MIN_GATE       2
 #define OBJ_APP_SEMA42              SEMA420     // HW instance
 #define OBJ_LOCK_CORE               0U          // Core 0 (RI5CY) locking identifier
 
@@ -276,7 +276,6 @@ struct rt_object *rt_hw_gate[16] = { 0 };       // Assigned gates to objects
 void rt_hw_object_trytake( struct rt_object *object )
 {
     int  g;
-    if( rt_object_get_type(object) == RT_Object_Class_Timer ) return;
     return;  // Trytake is disabled by now
 
     for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
@@ -300,7 +299,6 @@ void rt_hw_object_trytake( struct rt_object *object )
 void rt_hw_object_take( struct rt_object *object )
 {
     int  g;
-    if( rt_object_get_type(object) == RT_Object_Class_Timer ) return;
 
     for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
     if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
@@ -323,7 +321,6 @@ void rt_hw_object_take( struct rt_object *object )
 void rt_hw_object_put( struct rt_object *object )
 {
     int  g;
-    if( rt_object_get_type(object) == RT_Object_Class_Timer ) return;
 
     for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Search object's gate
     if( g < 16 )

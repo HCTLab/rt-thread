@@ -287,7 +287,8 @@ int pthread_create(pthread_t            *pid,
 
     /* set pthread cleanup function and ptd data */
     ptd->tid->cleanup = _pthread_cleanup;
-    ptd->tid->user_data = (rt_ubase_t)ptd;
+    //ptd->tid->user_data = (rt_ubase_t)ptd;  //(JAAS) Bug!
+    ptd->tid->user_data = (rt_ubase_t)ptd->tid;  //(JAAS) Correct
 
     /* start thread */
     if (rt_thread_startup(ptd->tid) == RT_EOK)
