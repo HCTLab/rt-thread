@@ -178,6 +178,7 @@ pendsv_exit:
     .global rt_hw_context_switch_to
     .type rt_hw_context_switch_to, %function
 rt_hw_context_switch_to:
+
     LDR     R1, =rt_interrupt_to_thread
     STR     R0, [R1]
 
@@ -185,6 +186,11 @@ rt_hw_context_switch_to:
     LDR     R1, =rt_interrupt_from_thread
     MOVS    R0, #0
     STR     R0, [R1]
+
+#ifdef RT_USING_SMP
+    LDR     R1, =rt_cpus_lock_status_restore
+    BLX     R1
+#endif
 
     /* set interrupt flag to 1 */
     LDR     R1, =rt_thread_switch_interrupt_flag

@@ -4,11 +4,13 @@ riscv___data_end__                      __data_end__
 riscv___bss_start__                     __bss_start__
 riscv___bss_end__                       __bss_end__
 riscv___heap_start                      __heap_start
+riscv_rt_hw_gate                        rt_hw_gate
 riscv_lfree                             lfree
 riscv_used_mem                          used_mem
 riscv_max_mem                           max_mem
-riscv_rt_hw_gate                        rt_hw_gate
 riscv_heap_sem                          heap_sem
+riscv_heap_ptr                          heap_ptr
+riscv_heap_end                          heap_end
 riscv_pthread_number                    pthread_number
 riscv_pth_table                         pth_table
 riscv_pth_lock_                         pth_lock_

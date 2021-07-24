@@ -79,7 +79,6 @@ void rt_tick_increase(void)
     thread = rt_thread_self();
 
     /*(JAAS) Sometimes thread=NULL, specially if a tick occurs between first thread and rt_system_scheduler_start() */
-
     if( thread != NULL )
     {
         -- thread->remaining_tick;

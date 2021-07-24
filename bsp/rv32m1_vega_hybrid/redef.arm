@@ -1,9 +1,11 @@
 arm___heap_start                        __heap_start
+arm_rt_hw_gate                          rt_hw_gate
 arm_lfree                               lfree
 arm_used_mem                            used_mem
 arm_max_mem                             max_mem
-arm_rt_hw_gate                          rt_hw_gate
 arm_heap_sem                            heap_sem
+arm_heap_ptr                            heap_ptr
+arm_heap_end                            heap_end
 arm_pthread_number                      pthread_number
 arm_pth_table                           pth_table
 arm_pth_lock_                           pth_lock_

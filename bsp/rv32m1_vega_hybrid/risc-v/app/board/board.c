@@ -214,12 +214,12 @@ void rt_hw_spin_lock_init(rt_hw_spinlock_t *lock)
 void rt_hw_spin_lock(rt_hw_spinlock_t *lock)
 {
     rt_hw_object_take((struct rt_object *) lock);
-    lock->tickets.owner--;
+    lock->tickets.owner++;
 }
 
 void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
 {
-    lock->tickets.owner++;
+    lock->tickets.owner--;
     rt_hw_object_put((struct rt_object *) lock);
 }
 
@@ -267,7 +267,7 @@ void rt_hw_us_delay( rt_uint32_t us )
 }
 
 //#define HYBRID_DEBUG
-#define HYBRID_DEBUG_MIN_GATE       2
+#define HYBRID_DEBUG_MIN_GATE       0
 #define OBJ_APP_SEMA42              SEMA420     // HW instance
 #define OBJ_LOCK_CORE               0U          // Core 0 (RI5CY) locking identifier
 
@@ -370,6 +370,7 @@ void rt_hw_board_init(void)
     rt_object_put_sethook( rt_hw_object_put );
 
     /* initialize hardware interrupt */
+    rt_system_scheduler_init();  // Scheduler will be init later on rtthread_startup(), but rt_hw_uart_init() requires some scheduler structure to be init!
     rt_hw_uart_init();
     rt_hw_systick_init();
 

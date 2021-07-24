@@ -110,6 +110,10 @@ int rtthread_startup(void)
     /* idle thread initialization */
     rt_thread_idle_init();
 
+#ifdef RT_USING_SMP
+    rt_hw_spin_lock(&_cpus_lock);
+#endif /*RT_USING_SMP*/
+
     /* start scheduler */
     rt_system_scheduler_start();
 

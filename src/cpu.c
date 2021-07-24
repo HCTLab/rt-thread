@@ -33,7 +33,7 @@ static void rt_preempt_disable(void)
     }
 
     /* lock scheduler for local cpu */
-    current_thread->scheduler_lock_nest ++;
+    //current_thread->scheduler_lock_nest ++;  //(JAAS) New scheduler locking system approach for hybrid systems
 
     /* enable interrupt */
     rt_hw_local_irq_enable(level);
@@ -58,7 +58,7 @@ static void rt_preempt_enable(void)
     }
 
     /* unlock scheduler for local cpu */
-    current_thread->scheduler_lock_nest --;
+    //current_thread->scheduler_lock_nest --;  //(JAAS) New scheduler locking system approach for hybrid systems
 
     rt_schedule();
     /* enable interrupt */
@@ -130,15 +130,14 @@ rt_base_t rt_cpus_lock(void)
 
     level = rt_hw_local_irq_disable();
 
+    //(JAAS) New scheduler locking system approach for hybrid systems
     pcpu = rt_cpu_self();
     if (pcpu->current_thread != RT_NULL)
     {
-        register rt_ubase_t lock_nest = pcpu->current_thread->cpus_lock_nest;
+        pcpu->scheduler_lock_nest++;
 
-        pcpu->current_thread->cpus_lock_nest++;
-        if (lock_nest == 0)
+        if (pcpu->scheduler_lock_nest == 1)
         {
-            pcpu->current_thread->scheduler_lock_nest++;
             rt_hw_spin_lock(&_cpus_lock);
         }
     }
@@ -156,20 +155,14 @@ void rt_cpus_unlock(rt_base_t level)
 
     if (pcpu->current_thread != RT_NULL)
     {
-        pcpu->current_thread->cpus_lock_nest--;
+        pcpu->scheduler_lock_nest--;
 
-        if (pcpu->current_thread->cpus_lock_nest <= 0)  //(JAAS)
+        if (pcpu->scheduler_lock_nest == 0)
         {
-            pcpu->current_thread->cpus_lock_nest = 0;  //(JAAS)
-            pcpu->current_thread->scheduler_lock_nest--;
             rt_hw_spin_unlock(&_cpus_lock);
         }
-
-        if( pcpu->current_thread->scheduler_lock_nest <= 0 )  //(JAAS)
-        {
-            pcpu->current_thread->scheduler_lock_nest = 0;
-        }
     }
+
     rt_hw_local_irq_enable(level);
 }
 RTM_EXPORT(rt_cpus_unlock);
@@ -183,8 +176,8 @@ void rt_cpus_lock_status_restore(struct rt_thread *thread)
 {
     struct rt_cpu* pcpu = rt_cpu_self();
 
-    pcpu->current_thread = thread;
-    if (!thread->cpus_lock_nest)
+    //(JAAS) New scheduler locking system approach for hybrid systems
+    if (!pcpu->scheduler_lock_nest)
     {
         rt_hw_spin_unlock(&_cpus_lock);
     }

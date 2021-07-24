@@ -587,6 +587,11 @@ struct rt_cpu
     rt_uint32_t priority_group;
 #endif
 
+    //(JAAS) Scheduler locking system is redefined on hybrid systems, based on CPU (not current_thread)
+#ifdef RT_USING_SMP
+    rt_int16_t scheduler_lock_nest;            /**< scheduler lock count */
+#endif
+
     rt_tick_t tick;
 };
 
@@ -624,10 +629,6 @@ struct rt_thread
 #ifdef RT_USING_SMP
     rt_uint8_t  bind_cpu;                               /**< thread is bind to cpu */
     rt_uint8_t  oncpu;                                  /**< process on cpu` */
-
-    rt_int16_t scheduler_lock_nest;                     /**< scheduler lock count */  //(JAAS) With sign!
-    rt_int16_t cpus_lock_nest;                          /**< cpus lock count */       //(JAAS) With sign!
-    rt_int16_t critical_lock_nest;                      /**< critical lock count */   //(JAAS) With sign!
 #endif /*RT_USING_SMP*/
 
     /* priority */
@@ -713,7 +714,7 @@ struct rt_semaphore
     rt_uint16_t          value;                         /**< value of semaphore. */
     rt_uint16_t          reserved;                      /**< reserved field */
 
-    rt_ubase_t           spin;                          /**(JAAS) Reserved for AMP hybrid IPC */
+    rt_ubase_t           spin;                          /**(JAAS) Reserved for hybrid IPC */
 };
 typedef struct rt_semaphore *rt_sem_t;
 #endif

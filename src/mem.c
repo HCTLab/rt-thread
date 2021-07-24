@@ -113,10 +113,10 @@ struct heap_mem
 };
 
 /** pointer to the heap: for alignment, heap_ptr is now a pointer instead of an array */
-static rt_uint8_t *heap_ptr;
+/* static */  rt_uint8_t *heap_ptr;         //(JAAS) Must be shared on hybrid systems
 
 /** the last entry, always unused! */
-static struct heap_mem *heap_end;
+/* static */  struct heap_mem *heap_end;    //(JAAS) Must be shared on hybrid systems
 
 #ifdef ARCH_CPU_64BIT
 #define MIN_SIZE 24
@@ -223,6 +223,8 @@ void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)
         return;
     }
 
+    if( first_core == 0 )  return;
+
     /* point to begin address of heap */
     heap_ptr = (rt_uint8_t *)begin_align;
 
@@ -252,10 +254,7 @@ void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)
     rt_sem_init(&heap_sem, "heap", 1, RT_IPC_FLAG_PRIO);
 
     /* initialize the lowest-free pointer to the start of the heap */
-    if( first_core )
-    {
-        lfree = (struct heap_mem *)heap_ptr;
-    }
+    lfree = (struct heap_mem *)heap_ptr;
 }
 
 /**

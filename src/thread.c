@@ -197,9 +197,9 @@ static rt_err_t _rt_thread_init(struct rt_thread *thread,
     thread->oncpu = RT_CPU_DETACHED;
 
     /* lock init */
-    thread->scheduler_lock_nest = 0;
-    thread->cpus_lock_nest = 0;
-    thread->critical_lock_nest = 0;
+    //thread->scheduler_lock_nest = 0;  //(JAAS) Different approach on hybrid systems
+    //thread->cpus_lock_nest = 0;       //(JAAS) Different approach on hybrid systems
+    //thread->critical_lock_nest = 0;   //(JAAS) Different approach on hybrid systems
 #endif /* RT_USING_SMP */
 
     /* initialize cleanup function and user data */

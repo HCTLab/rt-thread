@@ -201,7 +201,7 @@ void rt_system_scheduler_init(void)
     //for (cpu = 0; cpu < RT_CPUS_NR; cpu++)  //(JAAS) Only initialize custom architecture CPU
     cpu = rt_hw_cpu_id();  //(JAAS) Only initialize custom architecture CPU
     {
-        struct rt_cpu *pcpu =  rt_cpu_index(cpu);
+        struct rt_cpu *pcpu = rt_cpu_index(cpu);
         for (offset = 0; offset < RT_THREAD_PRIORITY_MAX; offset ++)
         {
             rt_list_init(&pcpu->priority_table[offset]);
@@ -211,6 +211,7 @@ void rt_system_scheduler_init(void)
         pcpu->current_priority = RT_THREAD_PRIORITY_MAX - 1;
         pcpu->current_thread = RT_NULL;
         pcpu->priority_group = 0;
+        pcpu->scheduler_lock_nest = 0;  //(JAAS) New scheduler approach for hybrid systems
 
 #if RT_THREAD_PRIORITY_MAX > 32
         rt_memset(pcpu->ready_table, 0, sizeof(pcpu->ready_table));
@@ -323,7 +324,7 @@ void rt_schedule(void)
     }
 #endif /* RT_USING_SIGNALS */
 
-    if (current_thread->scheduler_lock_nest == 1) /* whether lock scheduler */
+    if (pcpu->scheduler_lock_nest >= 1) /* whether lock scheduler */  //(JAAS) New scheduler locking system approach for hybrid systems
     {
         rt_ubase_t highest_ready_priority;
 
@@ -372,14 +373,33 @@ void rt_schedule(void)
                 _rt_scheduler_stack_check(to_thread);
 #endif /* RT_USING_OVERFLOW_CHECK */
 
+                //(JAAS) Scheduler lock should be release before switching
+                //       and local interrupts enabled after switching
+                pcpu->scheduler_lock_nest--;
+                if (pcpu->scheduler_lock_nest == 0)
+                {
+                    rt_hw_spin_unlock(&_cpus_lock);
+                }
+
                 rt_hw_context_switch((rt_ubase_t)&current_thread->sp,
                         (rt_ubase_t)&to_thread->sp, to_thread);
+
+                rt_hw_local_irq_enable(level);
+            }
+            else
+            {
+                rt_hw_interrupt_enable(level);
             }
         }
+        else
+        {
+            rt_hw_interrupt_enable(level);
+        }
     }
-
-    /* enable interrupt */
-    rt_hw_interrupt_enable(level);
+    else
+    {
+        rt_hw_interrupt_enable(level);
+    }
 
 #ifdef RT_USING_SIGNALS
     /* check stat of thread for signal */
@@ -570,7 +590,7 @@ void rt_scheduler_do_irq_switch(void *context)
         return;
     }
 
-    if (current_thread->scheduler_lock_nest == 1 && pcpu->irq_nest == 0)
+    if (pcpu->scheduler_lock_nest >= 1 && pcpu->irq_nest == 0)  //(JAAS) New scheduler locking system approach for hybrid systems
     {
         rt_ubase_t highest_ready_priority;
 
@@ -615,8 +635,8 @@ void rt_scheduler_do_irq_switch(void *context)
 #endif /* RT_USING_OVERFLOW_CHECK */
                 RT_DEBUG_LOG(RT_DEBUG_SCHEDULER, ("switch in interrupt\n"));
 
-                current_thread->cpus_lock_nest--;
-                current_thread->scheduler_lock_nest--;
+                //current_thread->cpus_lock_nest--;  //(JAAS) New scheduler locking system approach for hybrid systems
+                pcpu->scheduler_lock_nest--;  //(JAAS) New scheduler locking system approach for hybrid systems
 
                 rt_hw_context_switch_interrupt(context, (rt_ubase_t)&current_thread->sp,
                         (rt_ubase_t)&to_thread->sp, to_thread);
@@ -838,11 +858,12 @@ void rt_enter_critical(void)
 {
     register rt_base_t level;
     struct rt_thread *current_thread;
+    struct rt_cpu    *pcpu = rt_cpu_self();  //(JAAS) New scheduler locking system approach for hybrid systems
 
     /* disable interrupt */
     level = rt_hw_local_irq_disable();
 
-    current_thread = rt_cpu_self()->current_thread;
+    current_thread = pcpu->current_thread;
     if (!current_thread)
     {
         rt_hw_local_irq_enable(level);
@@ -855,19 +876,18 @@ void rt_enter_critical(void)
      */
 
     {
-        register rt_uint16_t lock_nest = current_thread->cpus_lock_nest;
-        current_thread->cpus_lock_nest++;
-        if (lock_nest == 0)
+        //(JAAS) New scheduler locking system approach for hybrid systems
+        pcpu->scheduler_lock_nest++;
+        if (pcpu->scheduler_lock_nest == 1)
         {
-            current_thread->scheduler_lock_nest ++;
             rt_hw_spin_lock(&_cpus_lock);
         }
     }
     /* critical for local cpu */
-    current_thread->critical_lock_nest ++;
+    //current_thread->critical_lock_nest ++;  //(JAAS) Internal debugging check
 
     /* lock scheduler for local cpu */
-    current_thread->scheduler_lock_nest ++;
+    //current_thread->scheduler_lock_nest ++;  //(JAAS) Internal debugging check
 
     /* enable interrupt */
     rt_hw_local_irq_enable(level);
@@ -900,32 +920,28 @@ void rt_exit_critical(void)
 {
     register rt_base_t level;
     struct rt_thread *current_thread;
+    struct rt_cpu    *pcpu = rt_cpu_self();  //(JAAS) New scheduler locking system approach for hybrid systems
 
     /* disable interrupt */
     level = rt_hw_local_irq_disable();
 
-    current_thread = rt_cpu_self()->current_thread;
+    current_thread = pcpu->current_thread;
     if (!current_thread)
     {
         rt_hw_local_irq_enable(level);
         return;
     }
 
-    current_thread->scheduler_lock_nest --;
+    //current_thread->scheduler_lock_nest --;  //(JAAS) New scheduler locking system approach for hybrid systems
 
-    current_thread->critical_lock_nest --;
+    //current_thread->critical_lock_nest --;  //(JAAS) New scheduler locking system approach for hybrid systems
 
-    current_thread->cpus_lock_nest--;
-    if (current_thread->cpus_lock_nest <= 0)  //(JAAS)
+    //(JAAS) New scheduler locking system approach for hybrid systems
+    pcpu->scheduler_lock_nest--;
+    if (pcpu->scheduler_lock_nest == 0)
     {
-        current_thread->cpus_lock_nest = 0;  //(JAAS)
-        current_thread->scheduler_lock_nest --;
         rt_hw_spin_unlock(&_cpus_lock);
-    }
 
-    if (current_thread->scheduler_lock_nest <= 0)
-    {
-        current_thread->scheduler_lock_nest = 0;
         /* enable interrupt */
         rt_hw_local_irq_enable(level);
 
@@ -945,7 +961,7 @@ void rt_exit_critical(void)
     /* disable interrupt */
     level = rt_hw_interrupt_disable();
 
-    rt_scheduler_lock_nest --;
+    rt_scheduler_lock_nest--;
     if (rt_scheduler_lock_nest <= 0)
     {
         rt_scheduler_lock_nest = 0;
@@ -975,9 +991,9 @@ RTM_EXPORT(rt_exit_critical);
 rt_uint16_t rt_critical_level(void)
 {
 #ifdef RT_USING_SMP
-    struct rt_thread *current_thread = rt_cpu_self()->current_thread;
+    struct rt_cpu    *pcpu = rt_cpu_self();  //(JAAS) New scheduler locking system approach for hybrid systems
 
-    return current_thread->critical_lock_nest;
+    return pcpu->scheduler_lock_nest;
 #else
     return rt_scheduler_lock_nest;
 #endif /* RT_USING_SMP */
