@@ -249,7 +249,7 @@ void rt_thread_idle_init(void)
 #ifdef RT_USING_SMP
         //(JAAS) Bind all IDLE threads to CPUs of a specific arch
         //rt_thread_control(&idle[i], RT_THREAD_CTRL_BIND_CPU, (void*)i);
-        rt_thread_control(&idle[i], RT_THREAD_CTRL_BIND_CPU, rt_hw_cpu_id());
+        rt_thread_control(&idle[i], RT_THREAD_CTRL_BIND_CPU, (void *)rt_hw_cpu_id());
 #endif /* RT_USING_SMP */
         /* startup */
         rt_thread_startup(&idle[i]);

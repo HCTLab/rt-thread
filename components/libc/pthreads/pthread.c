@@ -279,7 +279,7 @@ int pthread_create(pthread_t            *pid,
 
 #ifdef RT_USING_SMP
     //(JAAS) Bind new pthread to a CPU of a specific arch
-    rt_thread_control(ptd->tid, RT_THREAD_CTRL_BIND_CPU, rt_hw_cpu_id());
+    rt_thread_control(ptd->tid, RT_THREAD_CTRL_BIND_CPU, (void *)rt_hw_cpu_id());
 #endif /* RT_USING_SMP */
 
     /* set pthread id */
