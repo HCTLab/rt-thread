@@ -14,40 +14,64 @@
 #include <rtthread.h>
 #include <pthread.h>
 
+#include <dfs.h>
+#include <dfs_elm.h>
+
+extern int mnt_init(void);
+
+// File in SDCARD to be read
+#define  SDCARD_PLAIN_FILE      "plain.dat"
+#define  SDCARD_CIPHER_FILE     "cipher.dat"
+
 // Architecture specific variables (not redefined at redef.arch file)
-static pthread_t                rwthread1;
-static pthread_t                rwthread2;
+static pthread_t                rdthread;
+static pthread_t                wrthread;
 
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
 pthread_mutex_t                 global_mutex = PTHREAD_MUTEX_INITIALIZER;
 
-static void *rw_thread( void *parameter )
+static void *sdcard_reader_thread( void *parameter )
 {
-    char  data = *((char *)parameter);
-    int   i    = 0;
+    char   *filename = (char *) parameter;
+    char   *data     = NULL;
+    FILE   *file;
+    int     num;
 
-    rt_kprintf("%s Worker thread started (%p=%c)...\n", RT_DEBUG_ARCH, parameter, data);
-
-    while(i<40)
+    rt_kprintf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
+    data = malloc( 512 );
+    if( data == NULL )
     {
-        if( (i%10) == 0 )
-        {
-            pthread_mutex_lock( &global_mutex );
-            rt_kprintf( "%c", data+1 );
-        } //endif
+        rt_kprintf("%s Not enough memory! Exiting thread...\n", RT_DEBUG_ARCH);
+        return NULL;
+    } //endif
+    
+    // Try to open the file to be ciphered
+    file = fopen( filename, "rb" );
+    if( file == NULL )
+    {
+        rt_kprintf("%s File %s not found in SDCARD. Exiting thread...\n", RT_DEBUG_ARCH, filename);
+        return NULL;
+    } //endif
+    
+    // Read file in blocks and queue them to be cipherer by a consumer thread
+    num = fread( data, 1, 512, file );
+    rt_kprintf("%s Read %d bytes from file\n", RT_DEBUG_ARCH, num);
+    
+    // Finish thread
+    free( data );
+    rt_kprintf("%s SDCARD reader thread finished (%s)...\n", RT_DEBUG_ARCH, filename);
 
-        rt_thread_delay( RT_TICK_PER_SECOND / 5 );
-        rt_kprintf( "%c", data );
+    return NULL;
+}
 
-        if( (i%10) == 9 )
-        {
-            rt_kprintf( "%c", data-1 );
-            pthread_mutex_unlock( &global_mutex );
-        } //endif
-        i++;
-    } //wend
+static void *sdcard_writer_thread( void *parameter )
+{
+    char   *filename = (char *) parameter;
 
-    rt_kprintf("%s Worker thread finished (%p=%c)...\n", RT_DEBUG_ARCH, parameter, data);
+    rt_kprintf("%s SDCARD writer thread started (%s)...\n", RT_DEBUG_ARCH, filename);
+
+
+    rt_kprintf("%s SDCARD writer thread finished (%s)...\n", RT_DEBUG_ARCH, filename);
 
     return NULL;
 }
@@ -56,31 +80,32 @@ int main(int argc, char** argv)
 {
     pthread_mutexattr_t     mattr;
     pthread_attr_t          attr;
-    char  t1 = '1';
-    char  t2 = '4';
 
     rt_kprintf( "%s Main thread started!\n", RT_DEBUG_ARCH );
 
-    // Init common architecture objects
+    // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
     pthread_mutex_init( &global_mutex, &mattr );
+    
+    // Mount SDCARD filesystem
+    dfs_init();
+    elm_init();
+    if( mnt_init() )
+    {
+        rt_kprintf( "Please insert a SDCARD and restart system!\n", RT_DEBUG_ARCH );
+        return 0;
+    } //endif
 
-    // Define thread stack size
+    // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;
-    attr.stacksize = 4096;
-    //attr.detachstate = PTHREAD_CREATE_JOINABLE;  // PTHREAD_CREATE_JOINABLE == 0, so it's enabled by default
+    attr.stacksize = 4096;  // Define thread stack size
     attr.schedparam.sched_priority = RT_MAIN_THREAD_PRIORITY;
 
-    pthread_create( &rwthread1, &attr, rw_thread, &t1 );
-    //rt_kprintf( "%s Created thread (%ld)\n", RT_DEBUG_ARCH, rwthread1 );
-    pthread_create( &rwthread2, &attr, rw_thread, &t2 );
-    //rt_kprintf( "%s created thread (%ld)\n", RT_DEBUG_ARCH, rwthread2 );
-
-    // Do not release this thread stack (thread couldn't read parameters!) till threads exit
-    pthread_join( rwthread1, NULL );
-    pthread_join( rwthread2, NULL );
-
+    pthread_create( &rdthread, &attr, sdcard_reader_thread, SDCARD_PLAIN_FILE );
+    pthread_create( &wrthread, &attr, sdcard_writer_thread, SDCARD_CIPHER_FILE );
+    pthread_join( rdthread, NULL );
+    pthread_join( wrthread, NULL );
     rt_kprintf( "%s Main thread finished!\n", RT_DEBUG_ARCH );
 
     return 0;

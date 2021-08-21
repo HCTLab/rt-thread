@@ -5,7 +5,7 @@ import os
 CROSS_TOOL  = 'gcc'
 ARCH        = 'hybrid'
 
-STD_LIB     = 'build/arm/libc.a build/arm/libgcc.a build/risc-v/libc.a build/risc-v/libgcc.a'
+STD_LIB     = 'build/arm/libc.a build/arm/libgcc.a build/arm/libnosys.a build/risc-v/libc.a build/risc-v/libgcc.a build/risc-v/libnosys.a'
 
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')

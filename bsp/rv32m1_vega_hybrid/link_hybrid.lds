@@ -225,6 +225,8 @@ SECTIONS
   /* End of uninitalized data segment */
   _end = .;
   PROVIDE(end = .);
+  PROVIDE(riscv_end = .);
+  PROVIDE(arm_end = .);
 
   . = ALIGN(0x100);
   __heap_start = .;

@@ -107,7 +107,7 @@ int rt_hw_sdcard_init(void)
         }
 
         status = SD_ReadBlocks(card, sector, 0, 1);
-        if (status == true)
+        if (status == kStatus_Success)
         {
             /* get the first partition */
             if (dfs_filesystem_get_partition(&part, sector, 0) != 0)

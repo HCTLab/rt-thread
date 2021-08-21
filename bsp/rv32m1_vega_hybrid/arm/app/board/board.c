@@ -222,7 +222,7 @@ void rt_hw_board_init( void )
     rt_system_scheduler_init();  // Scheduler will be init later on rtthread_startup(), but rt_hw_uart_init() requires some scheduler structure to be init!
     rt_hw_uart_init();
     rt_hw_systick_init();  // Core 0 uses LPIT0 and this core uses LPIT1
-
+    
 #ifdef RT_USING_HEAP
     rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 0 );  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
 #endif

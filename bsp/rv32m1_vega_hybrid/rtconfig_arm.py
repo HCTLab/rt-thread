@@ -74,9 +74,11 @@ if PLATFORM == 'gcc':
 POST_ACTION = 'cd ' + OBJ_PATH + ' && ' + \
               'cp ' + GCC_LIB_PATH + '/libgcc.a . && ' + \
               'cp ' + STD_LIB_PATH + '/libc.a . && ' + \
+              'cp ' + STD_LIB_PATH + '/libnosys.a . && ' + \
               'cd ../..  && ' + \
               OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
               OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libgcc.a && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libc.a && ' + \
+              OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libnosys.a && ' + \
               AR + ' x $TARGET startup_RV32M1_cm0.o'

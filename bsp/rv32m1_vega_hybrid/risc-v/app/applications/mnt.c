@@ -14,15 +14,12 @@
 
 int mnt_init(void)
 {
-    if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
-    {
-        rt_kprintf("File System initialized!\n");
-    }
-    else
-    {
-        rt_kprintf("File System initialized failed!\n");
-    }
-    return 0;
+    int error = dfs_mount("sd0", "/", "elm", 0, 0);
+
+    if (error == 0)  rt_kprintf("File System initialized!\n");
+    else             rt_kprintf("File System initialized failed!\n");
+
+    return error;
 }
 INIT_ENV_EXPORT(mnt_init);
 #endif

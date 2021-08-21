@@ -61,7 +61,9 @@ static status_t USDHC_TransferFunction(USDHC_Type *base, usdhc_transfer_t *conte
         dmaConfig.admaTableWords = USDHC_ADMA_TABLE_WORDS;
     }
 
-    error = USDHC_TransferBlocking(base, &dmaConfig, content);
+    //error = USDHC_TransferBlocking(base, &dmaConfig, content);
+    //(JAAS) Debugging: Do non-DMA transfers (also with data)
+    error = USDHC_TransferBlocking(base, NULL, content);
 
     if (error == kStatus_Fail)
     {

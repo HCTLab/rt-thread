@@ -13,6 +13,7 @@
 
 #include "board.h"
 #include "drv_uart.h"
+#include "drv_sdcard.h"
 
 #include "pin_mux.h"
 #include "clock_config.h"
@@ -45,9 +46,18 @@ void APP_InitDomain(void)
     xrdc_mem_access_config_t memConfig;
 
     const xrdc_periph_t periphAccessible[] = {
-        kXRDC_PeriphLpuart0, kXRDC_PeriphWdog0,   kXRDC_PeriphXrdcMgr, kXRDC_PeriphXrdcMdac, kXRDC_PeriphXrdcPac,
-        kXRDC_PeriphXrdcMrc, kXRDC_PeriphSema420, kXRDC_PeriphSema421, kXRDC_PeriphWdog1,    kXRDC_PeriphPcc0,
-        kXRDC_PeriphPcc1,    kXRDC_PeriphMua,     kXRDC_PeriphMub };
+        kXRDC_PeriphLpuart0,   kXRDC_PeriphSdhc0,     
+        kXRDC_PeriphXrdcMgr,   kXRDC_PeriphXrdcMdac,  
+        kXRDC_PeriphXrdcPac,   kXRDC_PeriphXrdcMrc,   
+        kXRDC_PeriphSema420,   kXRDC_PeriphSema421, 
+        kXRDC_PeriphWdog0,     kXRDC_PeriphWdog1,     
+        kXRDC_PeriphPcc0,      kXRDC_PeriphPcc1,    
+        kXRDC_PeriphMua,       kXRDC_PeriphMub,
+        kXRDC_PeriphDma0,      kXRDC_PeriphDma1,
+        kXRDC_PeriphDma1Tcd,   kXRDC_PeriphDma1Tcd,
+        kXRDC_PeriphDmamux0,   kXRDC_PeriphDmamux1,
+        kXRDC_PeriphIntmux0
+    };
 
     XRDC_Init(XRDC);
     XRDC_SetGlobalValid(XRDC, false);
@@ -374,6 +384,9 @@ void rt_hw_board_init(void)
 #ifdef RT_USING_HEAP
     rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 1 );
 #endif
+
+    // Other drivers to be initialized
+    rt_hw_sdcard_init();
 
     // Boot Core 1 (CM0+)
     MU_BootOtherCore( APP_MU, APP_CORE1_BOOT_MODE );
