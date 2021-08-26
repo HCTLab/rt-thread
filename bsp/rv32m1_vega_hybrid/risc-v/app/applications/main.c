@@ -8,24 +8,26 @@
  * 2021/08/26     Juancho      Hybrid version
  */
 
-// Standard headers
-#include <stdio.h>
-#include <stdlib.h>
-#include <rtthread.h>
-#include <pthread.h>
-#include <semaphore.h>
-
 // RT-Thread headers
+#include <rtthread.h>
 #include <libc.h>
 #include <dfs.h>
 #include <dfs_elm.h>
 
-// File in SDCARD to be read
+// Standard headers
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <pthread.h>
+#include <semaphore.h>
+
+// Files in SDCARD to be read/writen
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
-#define  NUM_BLOCKS             10
-#define  BLOCK_SIZE             2048
+//#define TRACE_LOOP
+#define  NUM_BLOCKS             8
+#define  BLOCK_SIZE            (16*1048)
 
 // External non-defined functions
 extern int mnt_init(void);
@@ -87,7 +89,9 @@ static void *sdcard_reader_thread( void *parameter )
         } //endif
         
         // Wait for a free block and use such block for reading
+#ifdef TRACE_LOOP
         printf("%s Waiting for a new block to be read [%d]\n", RT_DEBUG_ARCH, blk);
+#endif
         sem_wait( &global_read_sem );
         
         // Do internal checks
@@ -101,12 +105,18 @@ static void *sdcard_reader_thread( void *parameter )
         pthread_mutex_unlock( &global_mutex );
         
         // Read a block from file
+#ifdef TRACE_LOOP
         printf("%s Reading block [%d]\n", RT_DEBUG_ARCH, blk);
+#else
+        printf("R");
+#endif
         len  = fread( data, 1, BLOCK_SIZE, file );
         num += len;
         
-        // Mark block as read, and move semaphore to let the cipherer run
+        // Mark block as read, and move semaphore to let the cipherer thread to run
+#ifdef TRACE_LOOP
         printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, blk);
+#endif
         pthread_mutex_lock( &global_mutex );
         global_queue[idx].is_read = 1;
         if( (len != BLOCK_SIZE) || feof(file) )
@@ -122,7 +132,8 @@ static void *sdcard_reader_thread( void *parameter )
     } //wend
     
     // Finish thread
-    printf("%s SDCARD reader thread finished (%s)...\n", RT_DEBUG_ARCH, filename);
+    fclose( file );
+    printf("\n%s SDCARD reader thread finished (%d bytes read from %s)...\n", RT_DEBUG_ARCH, num, filename);
 
     return NULL;
 }
@@ -132,7 +143,7 @@ static void *sdcard_writer_thread( void *parameter )
     char   *filename = (char *) parameter;
     char   *data     = NULL;
     FILE   *file;
-    int     blk, end, num, idx;
+    int     blk, len, end, num, idx;
 
     printf("%s SDCARD writer thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     
@@ -152,7 +163,9 @@ static void *sdcard_writer_thread( void *parameter )
     while( 1 )
     {
         // Wait for a ciphered block and get (in exclusive mode) a new block to be used for reading
+#ifdef TRACE_LOOP
         printf("%s Waiting for a new block to be written [%d]\n", RT_DEBUG_ARCH, blk);
+#endif
         sem_wait( &global_write_sem );
 
         pthread_mutex_lock( &global_mutex );
@@ -160,27 +173,34 @@ static void *sdcard_writer_thread( void *parameter )
         end  = global_queue[idx].is_last;
         pthread_mutex_unlock( &global_mutex );
         
-        // Check for end condition
-        if( end != 0 )  break;
-
         // Write block to file
+#ifdef TRACE_LOOP
         printf("%s Writting block [%d]\n", RT_DEBUG_ARCH, blk);
-        num += fwrite( data, 1, BLOCK_SIZE, file );
+#else
+        printf("W");
+#endif
+        len  = fwrite( data, 1, BLOCK_SIZE, file );
+        num += len;
         
         // Free allocated block data
         free( data );
         
-        // Mark block as written, and move semaphore to let the reader run and repeat the loop
+        // Mark block as written, and move semaphore to let the reader thread to run and repeat the big loop
+#ifdef TRACE_LOOP
         printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, blk);
+#endif
         pthread_mutex_lock( &global_mutex );
         if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered == 0) )
         {
-            printf("%s Internal error while wrtiting file...\n", RT_DEBUG_ARCH);
+            printf("%s Internal error while writing file...\n", RT_DEBUG_ARCH);
             return NULL;
         } //endif
         memset( &global_queue[idx], 0, sizeof(global_queue[idx]) );
         pthread_mutex_unlock( &global_mutex );
         sem_post( &global_read_sem );
+
+        // Check for end condition
+        if( end != 0 )  break;
         
         // Increase index
         idx = (idx + 1) % NUM_BLOCKS;
@@ -188,7 +208,8 @@ static void *sdcard_writer_thread( void *parameter )
     } //wend
     
     // Finish thread
-    printf("%s SDCARD writer thread finished (%s)...\n", RT_DEBUG_ARCH, filename);
+    fclose( file );
+    printf("\n%s SDCARD writer thread finished (%d bytes writen to %s)...\n", RT_DEBUG_ARCH, num, filename);
 
     return NULL;
 }
@@ -214,8 +235,8 @@ int main(int argc, char** argv)
     mattr = PTHREAD_MUTEX_RECURSIVE;
     pthread_mutex_init( &global_mutex, &mattr );
     sem_init( &global_read_sem,   1, NUM_BLOCKS );
-    sem_init( &global_cipher_sem, 1, 0 );
-    sem_init( &global_write_sem,  1, 0 );
+    sem_init( &global_cipher_sem, 1, 1 );  sem_wait( &global_cipher_sem );
+    sem_init( &global_write_sem,  1, 1 );  sem_wait( &global_write_sem );
     memset( global_queue, 0, sizeof(global_queue) );
     
     // Mount SDCARD filesystem
@@ -235,7 +256,7 @@ int main(int argc, char** argv)
     pthread_create( &wrthread, &attr, sdcard_writer_thread, SDCARD_CIPHER_FILE );
     pthread_join( rdthread, NULL );
     pthread_join( wrthread, NULL );
-    printf( "%s Main thread finished!\n", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread finished!\n", RT_DEBUG_ARCH );
 
     return 0;
 }

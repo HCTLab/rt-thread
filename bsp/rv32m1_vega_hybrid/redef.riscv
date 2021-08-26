@@ -20,3 +20,7 @@ riscv_rt_thread_priority_table          rt_thread_priority_table
 riscv_rt_thread_ready_priority_group    rt_thread_ready_priority_group
 riscv_rt_thread_ready_table             rt_thread_ready_table
 riscv_global_mutex                      global_mutex
+riscv_global_read_sem                   global_read_sem
+riscv_global_cipher_sem                 global_cipher_sem
+riscv_global_write_sem                  global_write_sem
+riscv_global_queue                      global_queue

@@ -78,6 +78,7 @@ POST_ACTION = 'cd ' + OBJ_PATH + ' && ' + \
               'cd ../..  && ' + \
               OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
               OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
+              AR + ' d ' + OBJ_PATH + '/libc.a lib_a-writer.o lib_a-sbrkr.o lib_a-mallocr.o lib_a-freer.o lib_a-reallocr.o lib_a-openr.o lib_a-lseekr.o lib_a-readr.o && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libgcc.a && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libc.a && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libnosys.a && ' + \
