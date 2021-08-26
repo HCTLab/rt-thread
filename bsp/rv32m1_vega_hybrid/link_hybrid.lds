@@ -35,6 +35,7 @@ SECTIONS
     . = ALIGN(4);
     riscv___user_vector = .;
     KEEP(*(user_vectors))
+
     *(.text)                 /* .text sections (code) */
     *(.text*)                /* .text* sections (code) */
     *(.rodata)               /* .rodata sections (constants, strings, etc.) */

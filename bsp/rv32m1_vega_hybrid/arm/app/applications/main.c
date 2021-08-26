@@ -5,8 +5,7 @@
  *
  * Change Logs:
  * Date           Author       Notes
- * 2018/11/28     Bernard      The first version
- * 2020/08/26     Juancho      Hybrid version
+ * 2021/08/26     Juancho      Hybrid version
  */
 
 #include <stdio.h>

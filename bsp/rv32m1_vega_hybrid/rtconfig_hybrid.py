@@ -39,7 +39,7 @@ if PLATFORM == 'gcc':
     AFLAGS = ''
     LINK_SCRIPT = 'link_hybrid.lds'
     TARGET_LIBS = 'rtthread.arm.lib rtthread.risc-v.lib'
-    LFLAGS = ' --gc-sections -Map=map_hybrid.txt -cref -T %s startup_RV32M1_cm0.o startup_RV32M1_ri5cy.o --allow-multiple-definition --start-group %s %s --end-group ' % (LINK_SCRIPT, STD_LIB, TARGET_LIBS)
+    LFLAGS = ' --gc-sections --allow-multiple-definition -Map=map_hybrid.txt -cref -T %s startup_RV32M1_cm0.o startup_RV32M1_ri5cy.o --start-group %s %s --end-group ' % (LINK_SCRIPT, STD_LIB, TARGET_LIBS)
     LIBS = ''
 
     CPATH = ''

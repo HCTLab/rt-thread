@@ -73,6 +73,7 @@ POST_ACTION = 'cd ' + OBJ_PATH + ' && ' + \
               'cd ../..  && ' + \
               OBJCPY + ' --prefix-symbols riscv_ $TARGET && ' + \
               OBJCPY + ' --redefine-syms=redef.riscv $TARGET && ' + \
+              AR + ' d ' + OBJ_PATH + '/libc.a lib_a-writer.o lib_a-sbrkr.o lib_a-nano-mallocr.o lib_a-nano-freer.o lib_a-nano-reallocr.o lib_a-openr.o lib_a-lseekr.o lib_a-readr.o && ' + \
               OBJCPY + ' --prefix-symbols riscv_ ' + OBJ_PATH + '/libgcc.a && ' + \
               OBJCPY + ' --prefix-symbols riscv_ ' + OBJ_PATH + '/libc.a && ' + \
               OBJCPY + ' --prefix-symbols riscv_ ' + OBJ_PATH + '/libnosys.a && ' + \

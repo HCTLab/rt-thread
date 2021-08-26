@@ -14,7 +14,7 @@ drivers/fsl_intmux.c
 drivers/fsl_mu.c
 drivers/fsl_sema42.c
 gcc/startup_RV32M1_cm0.S
-gcc/syscalls.c
+gcc/syscalls_sdk.c
 ''')
 CPPPATH = [cwd, cwd + '/../../CMSIS/Include', cwd + '/drivers', cwd + '/utilities']
 CPPDEFINES = ['CPU_RV32M1_cm0plus', 'SDK_DEBUGCONSOLE=0']
