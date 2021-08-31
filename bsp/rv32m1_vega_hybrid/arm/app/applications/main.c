@@ -26,8 +26,9 @@
 
 #define  printf                 rt_kprintf
 
-// External non-defined functions
+// External non-declared functions
 extern int mnt_init(void);
+extern long rt_hw_usec_get(void);
 
 // Define types
 typedef struct
@@ -129,6 +130,7 @@ static void *cipher_thread( void *parameter )
 int main(int argc, char** argv)
 {
     pthread_attr_t          attr;
+    long                    time_a, time_b;
 
     // Configure STDIO stdin/stdout to point to serial port
     // Note: Must be called always after dfs_init(), to set allow setting the console as stdio/stderr
@@ -137,6 +139,13 @@ int main(int argc, char** argv)
     
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+
+    // Test time measure
+    time_a = rt_hw_usec_get();
+    //usleep( 1000000L );
+    time_b = rt_hw_usec_get();
+    printf( "%s Elapsed usecs = %ld!\n", RT_DEBUG_ARCH, time_b-time_a );
+    while(1);
 
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );

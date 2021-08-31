@@ -29,8 +29,9 @@
 #define  NUM_BLOCKS             8
 #define  BLOCK_SIZE            (16*1048)
 
-// External non-defined functions
-extern int mnt_init(void);
+// External non-declared functions
+extern int  mnt_init(void);
+extern long rt_hw_usec_get(void);
 
 // Define types
 typedef struct
@@ -218,6 +219,7 @@ int main(int argc, char** argv)
 {
     pthread_mutexattr_t     mattr;
     pthread_attr_t          attr;
+    long                    time_a, time_b;
 
     // Init some subsystems/components
     dfs_init();
@@ -230,6 +232,12 @@ int main(int argc, char** argv)
     
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+    
+    // Test time measure
+    time_a = rt_hw_usec_get();
+    //usleep( 1000000L );
+    time_b = rt_hw_usec_get();
+    printf( "%s Elapsed usecs = %ld!\n", RT_DEBUG_ARCH, time_b-time_a );
 
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;

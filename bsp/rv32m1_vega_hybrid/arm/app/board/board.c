@@ -16,6 +16,7 @@
 #include "clock_config.h"
 
 #include <fsl_clock.h>
+#include <fsl_lpit.h>
 #include <fsl_intmux.h>
 #include <fsl_mu.h>
 #include <fsl_xrdc.h>
@@ -97,9 +98,9 @@ void MUB_IRQHandler(void)
         
             if( flags & kMU_GenInt0Flag )
             {
-                // General MU interrupt 0 is used to allow hybrid to be preemtive
+                // General MU interrupt 0 is used to allow hybrid to be preemptive
                 // Other core has re-scheduled tasks on this core!
-                rt_schedule();
+                rt_scheduler_ipi_handler( flags, NULL );
             } //endif
         } //endif
     } //endfor
@@ -137,9 +138,13 @@ void LPIT1_IRQHandler( void )
     SystemClearSystickFlag();
 }
 
+static long  tick_max_count = 0L;
+
 int rt_hw_systick_init( void )
 {
     CLOCK_SetIpSrc( kCLOCK_Lpit1, kCLOCK_IpSrcFircAsync );
+    // Note: Use the same time base for all cores (==LPIT0)
+    tick_max_count = CLOCK_GetIpFreq( kCLOCK_Lpit0 ) / RT_TICK_PER_SECOND;
 
     SystemSetupSystick( RT_TICK_PER_SECOND, 0 );
     SystemClearSystickFlag();
@@ -147,9 +152,18 @@ int rt_hw_systick_init( void )
     return 0;
 }
 
+long rt_hw_usec_get(void)
+{
+    // Get current usecs from first core tick counter
+    long  usec  = rt_cpu_index(0)->tick * (1000/RT_TICK_PER_SECOND) * 1000L;
+    // Note: Use the same time base for all cores (==LPIT0)
+    long  count = LPIT_GetCurrentTimerCount( LPIT0, 0 );  // Channel 0, please refer to system_RV32M1_xxx.c
+    
+    return usec + (((tick_max_count-count) * (1000/RT_TICK_PER_SECOND) * 1000L) / tick_max_count);
+}
+
 void rt_hw_us_delay( rt_uint32_t us )
 {
-    // TBD
 }
 
 //#define HYBRID_DEBUG
