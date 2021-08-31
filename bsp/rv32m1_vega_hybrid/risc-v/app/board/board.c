@@ -28,6 +28,7 @@
 
 // MUA/MUB defined at RV32M1_ri5cy.h
 #define APP_MU                   MUA
+#define APP_MU_IRQ               MUA_IRQn
 #define APP_SEMA42               SEMA420
 #define APP_CORE1_BOOT_MODE      kMU_CoreBootFromDflashBase
 #define BOOT_FLAG                0x01U
@@ -181,7 +182,7 @@ int rt_hw_systick_init(void)
 {
     CLOCK_SetIpSrc(kCLOCK_Lpit0, kCLOCK_IpSrcFircAsync);
 
-    SystemSetupSystick (RT_TICK_PER_SECOND, 0);
+    SystemSetupSystick( RT_TICK_PER_SECOND, 0 );  // 0 = Top priority
     SystemClearSystickFlag();
 
     return 0;
@@ -198,8 +199,10 @@ const scg_lpfll_config_t g_appScgLpFllConfig_BOARD_BootClockRUN = {
 
 static void BOARD_InitLedPin(void)
 {
-    const gpio_pin_config_t config = {
-        .pinDirection = kGPIO_DigitalOutput, .outputLogic = 0,
+    const gpio_pin_config_t config = 
+    {
+        .pinDirection = kGPIO_DigitalOutput, 
+        .outputLogic  = 0,
     };
 
     GPIO_PinInit(BOARD_LED1_GPIO, BOARD_LED1_GPIO_PIN, &config);
@@ -235,17 +238,42 @@ void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
 
 void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
 {
-    /*
-    int idx;
+    MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+}
 
-    for (idx = 0; idx < RT_CPUS_NR; idx ++)
+#define MU_ISR_FLAG_BASE    (20)
+#define MU_ISR_COUNT        (12)
+
+void MUA_IRQHandler(void)
+{
+    uint32_t flags;
+    int i;
+
+    flags = MU_GetStatusFlags( APP_MU );
+    
+#if (defined(FSL_FEATURE_MU_HAS_RESET_INT) && FSL_FEATURE_MU_HAS_RESET_INT)
+    /* The other core reset assert interrupt pending */
+    if( flags & kMU_ResetAssertInterruptFlag )
     {
-        if (cpu_mask & (1 << idx))
+        MU_ClearStatusFlags( APP_MU, kMU_ResetAssertInterruptFlag );
+        return;
+    } //endif
+#endif
+
+    for( i=MU_ISR_FLAG_BASE; i<(MU_ISR_FLAG_BASE+MU_ISR_COUNT); i++ )
+    {
+        if( flags & (1 << i) )
         {
-            //clint_ipi_send(idx);
-        }
-    }
-    */
+            MU_ClearStatusFlags( APP_MU, (1 << i) );
+
+            if( flags & kMU_GenInt0Flag )
+            {
+                // General MU interrupt 0 is used to allow hybrid to be preemtive
+                // Other core has re-scheduled tasks on this core!
+                rt_schedule();
+            } //endif
+        } //endif
+    } //endfor
 }
 
 void rt_hw_secondary_cpu_up(void)
@@ -357,12 +385,17 @@ void rt_hw_board_init(void)
 
     CLOCK_InitLpFll( &g_appScgLpFllConfig_BOARD_BootClockRUN );
 
-    // Small delay (~5 secs) to wait for an external debug TAP connection
-    for( int i=0; i<20000000; i++ )  { }
+    // Small delay (~3 secs) to wait for an external debug TAP connection
+    for( int i=0; i<10000000; i++ )  { }
 
-    MU_Init( APP_MU );
     APP_InitDomain();
 
+    MU_Init( APP_MU );
+    MU_EnableInterrupts( APP_MU, kMU_GenInt0InterruptEnable );
+
+    EVENT_SetIRQPriority( APP_MU_IRQ, 0 );  // 0 = Top priority (same as TICK timer)
+    EnableIRQ( APP_MU_IRQ );
+    
     SEMA42_Init( APP_SEMA42 );
     SEMA42_ResetAllGates( APP_SEMA42 );
 
@@ -371,12 +404,12 @@ void rt_hw_board_init(void)
     INTMUX_EnableInterrupt( INTMUX0, 0, PORTC_IRQn );
     */
 
-    /* initialize intercore AMP syncronization */
+    // Initialize intercore AMP syncronization
     rt_object_trytake_sethook( rt_hw_object_trytake );
     rt_object_take_sethook( rt_hw_object_take );
     rt_object_put_sethook( rt_hw_object_put );
 
-    /* initialize hardware interrupt */
+    // Initialize hardware interrupt
     rt_system_scheduler_init();  // Scheduler will be init later on rtthread_startup(), but rt_hw_uart_init() requires some scheduler structure to be init!
     rt_hw_uart_init();
     rt_hw_systick_init();
@@ -390,9 +423,8 @@ void rt_hw_board_init(void)
 
     // Boot Core 1 (CM0+)
     MU_BootOtherCore( APP_MU, APP_CORE1_BOOT_MODE );
-    // Wait till Core 1 is Boot Up
+    // Wait till Core 1 will boot
     while( BOOT_FLAG != MU_GetFlags(APP_MU) ) { }
-
     //while(1);  // Only ARM runs
 
 #ifdef RT_USING_CONSOLE

@@ -234,7 +234,7 @@ int main(int argc, char** argv)
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
     pthread_mutex_init( &global_mutex, &mattr );
-    sem_init( &global_read_sem,   1, NUM_BLOCKS );
+    sem_init( &global_read_sem,   1, 1 );  sem_wait( &global_read_sem );
     sem_init( &global_cipher_sem, 1, 1 );  sem_wait( &global_cipher_sem );
     sem_init( &global_write_sem,  1, 1 );  sem_wait( &global_write_sem );
     memset( global_queue, 0, sizeof(global_queue) );

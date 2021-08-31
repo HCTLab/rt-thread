@@ -59,6 +59,13 @@ static void *cipher_thread( void *parameter )
 
     printf("%s CIPHER thread started...\n", RT_DEBUG_ARCH);
     
+    // Unlock main reader thread on other core to start reading
+    for( i=0; i<NUM_BLOCKS; i++ )
+    {
+        sem_post( &global_read_sem );
+    } //endfor
+    printf("+");
+    
     // Read file in blocks and queue them to be ciphered by a consumer thread
     blk = 0;
     num = 0;

@@ -24,9 +24,10 @@
 #include <fsl_gpio.h>
 #include <fsl_lpuart.h>
 
-#define APP_MU                  MUB
-#define APP_SEMA42              SEMA420
-#define BOOT_FLAG               0x01U
+#define APP_MU                   MUB
+#define APP_MU_IRQ               MUB_IRQn
+#define APP_SEMA42               SEMA420
+#define BOOT_FLAG                0x01U
 
 
 /*******************************************************************************
@@ -66,17 +67,42 @@ void rt_hw_spin_unlock( rt_hw_spinlock_t *lock )
 
 void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
 {
-    /*
-    int idx;
+    MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+}
 
-    for( idx=0; idx<RT_CPUS_NR; idx ++ )
+#define MU_ISR_FLAG_BASE    (20)
+#define MU_ISR_COUNT        (12)
+
+void MUB_IRQHandler(void)
+{
+    uint32_t flags;
+    int i;
+
+    flags = MU_GetStatusFlags( APP_MU );
+    
+#if (defined(FSL_FEATURE_MU_HAS_RESET_INT) && FSL_FEATURE_MU_HAS_RESET_INT)
+    /* The other core reset assert interrupt pending */
+    if( flags & kMU_ResetAssertInterruptFlag )
     {
-        if( cpu_mask & (1 << idx) )
+        MU_ClearStatusFlags( APP_MU, kMU_ResetAssertInterruptFlag );
+        return;
+    } //endif
+#endif
+
+    for( i=MU_ISR_FLAG_BASE; i<(MU_ISR_FLAG_BASE+MU_ISR_COUNT); i++ )
+    {
+        if( flags & (1 << i) )
         {
-            //clint_ipi_send( idx );
-        }
-    }
-    */
+            MU_ClearStatusFlags( APP_MU, (1 << i) );
+        
+            if( flags & kMU_GenInt0Flag )
+            {
+                // General MU interrupt 0 is used to allow hybrid to be preemtive
+                // Other core has re-scheduled tasks on this core!
+                rt_schedule();
+            } //endif
+        } //endif
+    } //endfor
 }
 
 void rt_hw_secondary_cpu_up( void )
@@ -203,17 +229,20 @@ void rt_hw_board_init( void )
     BOARD_InitPins_Core1();
 
     MU_Init( APP_MU );
+    MU_EnableInterrupts( APP_MU, kMU_GenInt0InterruptEnable );
     MU_SetFlags( APP_MU, BOOT_FLAG );
 
-    // Small delay
+    // Set interrupt priority.
+    NVIC_SetPriority( APP_MU_IRQ, (1 << __NVIC_PRIO_BITS) - 1);
+    NVIC_EnableIRQ( APP_MU_IRQ );
+
+    // Move leds during a small delay to indicate that core is booting...
+    //LPUART_WriteByte(LPUART0, '.');
     LED1_OFF();
-    for( int i=0; i<10000000; i++ )  { }
+    for( int i=0; i<1000000; i++ )  { }
     LED1_ON();
 
-    // Send a character through core 0 UART
-    //LPUART_WriteByte(LPUART0, '.');
-
-    /* initialize intercore AMP syncronization */
+    // Initialize intercore AMP syncronization
     rt_object_trytake_sethook( rt_hw_object_trytake );
     rt_object_take_sethook( rt_hw_object_take );
     rt_object_put_sethook( rt_hw_object_put );
