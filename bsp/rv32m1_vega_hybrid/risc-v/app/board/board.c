@@ -251,9 +251,15 @@ void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
     rt_hw_object_put((struct rt_object *) lock);
 }
 
+// Dynamically control preemption on other cores
+int  is_preemtive = 1;
+
 void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
 {
-    MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+    if( is_preemtive != 0 )
+    {
+        MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+    } //endif
 }
 
 #define MU_ISR_FLAG_BASE    (20)
