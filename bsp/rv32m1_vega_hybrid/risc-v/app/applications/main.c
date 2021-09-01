@@ -188,7 +188,7 @@ static void *sdcard_reader_thread( void *parameter )
         } //endfor
     } //endfor
         
-    printf("\n%s SDCARD reader thread finished...\n", RT_DEBUG_ARCH);
+    printf("%s SDCARD reader thread finished...\n", RT_DEBUG_ARCH);
 
     return NULL;
 }
@@ -206,9 +206,6 @@ static void *sdcard_writer_thread( void *parameter )
     // Execute multiple times this test
     for( test=0; test<TEST_NUM; test++ )
     {
-        if( (test % 2) == 0 )  is_preemtive = 1;
-        else                   is_preemtive = 0;
-        
         // Try to open the file to be writen
         file = fopen( filename, "wb" );
         if( file == NULL )
@@ -221,6 +218,9 @@ static void *sdcard_writer_thread( void *parameter )
         blk = 0;
         num = 0;
         idx = 0;
+        time_write[test][TIME_MIN]    = 1000000000L;
+        time_write[test][TIME_MEDIUM] = 0L;
+        time_write[test][TIME_MAX]    = 0L;
         
         while( 1 )
         {
@@ -279,7 +279,7 @@ static void *sdcard_writer_thread( void *parameter )
         // Calculate full process timing
         time_full[test] = rt_hw_usec_get() - time_start;
 
-        // Calculate medium time of each read operation
+        // Calculate medium time of each write operation
         time_write[test][TIME_MEDIUM] /= blk;
 
         // Finish thread
@@ -287,9 +287,9 @@ static void *sdcard_writer_thread( void *parameter )
         //printf("\n%s Writer thread: %d bytes written to %s...\n", RT_DEBUG_ARCH, num, filename);
     } //endfor
 
-    printf("\n%s SDCARD writer thread finished...\n", RT_DEBUG_ARCH);
+    printf("\n\n%s SDCARD writer thread finished...\n", RT_DEBUG_ARCH);
 
-    // Report all timming
+    // Report all timing
     sleep(2);
     printf("\n\n%s ------------------- TIMING REPORT (usecs) -------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
