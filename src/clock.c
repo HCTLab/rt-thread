@@ -82,8 +82,15 @@ void rt_tick_increase(void)
     if( thread != NULL )
     {
         -- thread->remaining_tick;
+#ifdef RT_USING_SMP
+        if ( (thread->remaining_tick == 0) || (rt_cpu_self()->ipi_schedule != 0) )
+        {
+            rt_cpu_self()->ipi_schedule = 0;  //(JAAS) Non-preemtive mechanism when other core reschedules this one
+#else
         if (thread->remaining_tick == 0)
         {
+#endif /* RT_USING_SMP */
+            
             /* change to initialized tick */
             thread->remaining_tick = thread->init_tick;
             thread->stat |= RT_THREAD_STAT_YIELD;

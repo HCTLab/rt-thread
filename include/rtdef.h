@@ -589,7 +589,8 @@ struct rt_cpu
 
     //(JAAS) Scheduler locking system is redefined on hybrid systems, based on CPU (not current_thread)
 #ifdef RT_USING_SMP
-    rt_int16_t scheduler_lock_nest;            /**< scheduler lock count */
+    rt_int16_t  scheduler_lock_nest;                    /**< scheduler lock count */
+    rt_uint8_t  ipi_schedule;                           /**<(JAAS) Non-preemptive schedule indicator for hybrid implementation */
 #endif
 
     rt_tick_t tick;

@@ -36,9 +36,9 @@
 #define  TIME_TYPES             3
 
 // External non-declared functions/variables
-extern int  mnt_init(void);
-extern long rt_hw_usec_get(void);
-extern int  is_preemtive;
+extern unsigned long  rt_hw_usec_get(void);
+extern int            mnt_init(void);
+extern int            is_preemtive;
 
 // Define types
 typedef struct
@@ -72,11 +72,11 @@ block_t                         global_queue[ NUM_BLOCKS ];
 
 static void *sdcard_reader_thread( void *parameter )
 {
-    char   *filename = (char *) parameter;
-    char   *data     = NULL;
-    FILE   *file;
-    int     test, blk, len, num, idx, first_block, i;
-    long    time_ini, time_op;
+    char           *filename = (char *) parameter;
+    char           *data     = NULL;
+    FILE           *file;
+    int             test, blk, len, num, idx, first_block, i;
+    long            time_ini, time_end, time_op;
 
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     
@@ -147,7 +147,8 @@ static void *sdcard_reader_thread( void *parameter )
             time_ini = rt_hw_usec_get();
             len  = fread( data, 1, BLOCK_SIZE, file );
             num += len;
-            time_op = rt_hw_usec_get() - time_ini;
+            time_end = rt_hw_usec_get();
+            time_op  = time_end - time_ini;
             
             // Save timings
             time_read[test][TIME_MEDIUM] += time_op;
@@ -178,7 +179,7 @@ static void *sdcard_reader_thread( void *parameter )
         fclose( file );
         //printf("\n%s Reader thread: %d bytes read from %s...\n", RT_DEBUG_ARCH, num, filename);
 
-        // Calculate medium time of each read operation
+        // Calculate medium time for all read operations
         time_read[test][TIME_MEDIUM] /= blk;
         
         // Get all reader slots, till they will post on next test (to sync all thread when starting a new test)
@@ -195,11 +196,11 @@ static void *sdcard_reader_thread( void *parameter )
 
 static void *sdcard_writer_thread( void *parameter )
 {
-    char   *filename = (char *) parameter;
-    char   *data     = NULL;
-    FILE   *file;
-    int     test, blk, len, end, num, idx;
-    long    time_ini, time_op;
+    char           *filename = (char *) parameter;
+    char           *data     = NULL;
+    FILE           *file;
+    int             test, blk, len, end, num, idx;
+    long            time_ini, time_end, time_op;
 
     printf("%s SDCARD writer thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     
@@ -244,7 +245,9 @@ static void *sdcard_writer_thread( void *parameter )
             time_ini = rt_hw_usec_get();
             len  = fwrite( data, 1, BLOCK_SIZE, file );
             num += len;
-            time_op = rt_hw_usec_get() - time_ini;
+            fflush( file );
+            time_end = rt_hw_usec_get();
+            time_op  = time_end - time_ini;
             
             // Save timings
             time_write[test][TIME_MEDIUM] += time_op;
@@ -279,7 +282,7 @@ static void *sdcard_writer_thread( void *parameter )
         // Calculate full process timing
         time_full[test] = rt_hw_usec_get() - time_start;
 
-        // Calculate medium time of each write operation
+        // Calculate medium time for all write operations
         time_write[test][TIME_MEDIUM] /= blk;
 
         // Finish thread
@@ -291,13 +294,23 @@ static void *sdcard_writer_thread( void *parameter )
 
     // Report all timing
     sleep(2);
-    printf("\n\n%s ------------------- TIMING REPORT (usecs) -------------------\n", RT_DEBUG_ARCH);
+    time_ini = rt_hw_usec_get();
+    time_end = rt_hw_usec_get();
+    printf("\n\nMin measured time (usecs): %ld\n", time_end-time_ini);
+
+    printf("\n%s ------------------- TIMING REPORT (usecs) -------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s TEST #%d : OPS [%02d] --- TOTAL [%9ld] --- RMIN [%6ld] RMED [%6ld] RMAX [%6ld] --- WMIN [%6ld] WMED [%6ld] WMAX [%6ld]\n", 
+        printf("%s TEST #%d : OPS [%02d] --- TOTAL [%9ld] --- RMIN [%8ld] RMED [%8ld] RMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, blk, time_full[idx], 
-               time_read[idx][TIME_MIN],  time_read[idx][TIME_MEDIUM],  time_read[idx][TIME_MAX],
-               time_write[idx][TIME_MIN], time_write[idx][TIME_MEDIUM], time_write[idx][TIME_MAX] );
+               time_read[idx][TIME_MIN],  time_read[idx][TIME_MEDIUM],  time_read[idx][TIME_MAX]);
+    } //endfor
+    printf("\n");
+    for( idx=0; idx<TEST_NUM; idx++ )
+    {
+        printf("%s TEST #%d : OPS [%02d] --- TOTAL [%9ld] --- WMIN [%8ld] WMED [%8ld] WMAX [%8ld]\n", 
+               RT_DEBUG_ARCH, idx, blk, time_full[idx], 
+               time_write[idx][TIME_MIN], time_write[idx][TIME_MEDIUM], time_write[idx][TIME_MAX]);
     } //endfor
 
     return NULL;

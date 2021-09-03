@@ -179,13 +179,13 @@ void LPIT0_IRQHandler(void)
     SystemClearSystickFlag();
 }
 
-static long  tick_max_count = 0L;
+static int32_t  tick_max_count = 0L;
 
 int rt_hw_systick_init(void)
 {
     CLOCK_SetIpSrc( kCLOCK_Lpit0, kCLOCK_IpSrcFircAsync );
     // Note: Use the same time base for all cores (==LPIT0)
-    tick_max_count = CLOCK_GetIpFreq( kCLOCK_Lpit0 ) / RT_TICK_PER_SECOND;
+    tick_max_count = (uint32_t) (CLOCK_GetIpFreq( kCLOCK_Lpit0 ) / RT_TICK_PER_SECOND);
 
     SystemSetupSystick( RT_TICK_PER_SECOND, 0 );  // 0 = Top priority
     SystemClearSystickFlag();
@@ -193,14 +193,19 @@ int rt_hw_systick_init(void)
     return 0;
 }
 
-long rt_hw_usec_get(void)
+unsigned long rt_hw_usec_get(void)
 {
-    // Get current usecs from first core tick counter
-    long  usec  = rt_cpu_index(0)->tick * (1000/RT_TICK_PER_SECOND) * 1000L;
-    // Note: Use the same time base for all cores (==LPIT0)
-    long  count = LPIT_GetCurrentTimerCount( LPIT0, 0 );  // Channel 0, please refer to system_RV32M1_xxx.c
+    register unsigned long   usec;
+    register int32_t         count;
     
-    return usec + (((tick_max_count-count) * (1000/RT_TICK_PER_SECOND) * 1000L) / tick_max_count);
+    // Get current usecs from first core tick counter
+    // Note: Use the same time base for all cores (==LPIT0)
+    // Note: Read channel 0 for SYSTEM TICK counter, please refer to system_RV32M1_xxx.c
+    count = LPIT_GetCurrentTimerCount( LPIT0, 0 );
+    usec  = (unsigned long) rt_cpu_index(0)->tick * (1000000L/RT_TICK_PER_SECOND);
+   
+    // LPIT is a decrementing counter
+    return usec + (((tick_max_count-count) * (1000000L/RT_TICK_PER_SECOND)) / (unsigned long) tick_max_count);
 }
 
 const scg_lpfll_config_t g_appScgLpFllConfig_BOARD_BootClockRUN = {
@@ -256,9 +261,29 @@ int  is_preemtive = 1;
 
 void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
 {
-    if( is_preemtive != 0 )
+    int  i;
+    
+    if( ipi_vector == RT_SCHEDULE_IPI )
     {
-        MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+        if( is_preemtive != 0 )
+        {
+            // Do preemptive rescheduling in a different domain core
+            // Note: Currrently this HW only support asserting an IRQ in a single core
+            MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+        }
+        else
+        {
+            // Do non-preemptive rescheduling in one or different domain cores
+            for( i=0; i<RT_CPUS_NR; i++ )
+            {
+                if( cpu_mask & (1<<i) )
+                {
+                    struct rt_cpu *pcpu = rt_cpu_index(i);
+                    
+                    pcpu->ipi_schedule = 1;  // Non-protected access -> TBD!
+                } //endif
+            } //endfor
+        } //endif
     } //endif
 }
 

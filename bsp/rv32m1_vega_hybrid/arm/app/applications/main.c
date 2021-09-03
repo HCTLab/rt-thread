@@ -113,7 +113,7 @@ static void *cipher_thread( void *parameter )
 {
     char   *data = NULL;
     int     test, blk, end, num, idx, i;
-    long    time_ini, time_op;
+    long    time_ini, time_end, time_op;
     // Cipher keys
     ub4     k1[8]={0,0,0,0,0,0,0,0}, k2[8]={0,0,0,0,0,0,0,0};
 
@@ -176,7 +176,8 @@ static void *cipher_thread( void *parameter )
 #endif
             } //endfor
             num += BLOCK_SIZE;
-            time_op = rt_hw_usec_get() - time_ini;
+            time_end = rt_hw_usec_get();
+            time_op  = time_end - time_ini;
 
             // Mark block as ciphered, and move semaphore to let the writer thread to run
 #ifdef TRACE_LOOP
@@ -200,7 +201,7 @@ static void *cipher_thread( void *parameter )
             if( end != 0 )  break;
         } //wend
 
-        // Calculate medium time of each write operation
+        // Calculate medium time for all cipher operations
         time_cipher[test][TIME_MEDIUM] /= blk;
 
         // Wait some seconds before starting a new test
@@ -212,10 +213,10 @@ static void *cipher_thread( void *parameter )
     printf("%s CIPHER thread finished...\n", RT_DEBUG_ARCH);
 
     // Report all timing
-    sleep(3);
+    sleep(3); printf("\n");
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s TEST #%d : OPS [%02d] --- CMIN [%6ld] CMED [%6ld] CMAX [%6ld]\n", 
+        printf("%s   TEST #%d : OPS [%02d] ---                   --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, blk,
                time_cipher[idx][TIME_MIN], time_cipher[idx][TIME_MEDIUM], time_cipher[idx][TIME_MAX] );
     } //endfor

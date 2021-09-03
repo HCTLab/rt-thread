@@ -467,11 +467,14 @@ void SystemSetupSystick(uint32_t tickRateHz, uint32_t intPriority)
     CLOCK_EnableClock(kCLOCK_Lpit0);
 
     /* Reset the timer channels and registers except the MCR register */
-    SYSTICK_LPIT->MCR |= LPIT_MCR_SW_RST_MASK;
+    SYSTICK_LPIT->MCR |=  LPIT_MCR_SW_RST_MASK;
     SYSTICK_LPIT->MCR &= ~LPIT_MCR_SW_RST_MASK;
 
     /* Setup timer operation in debug and doze modes and enable the module */
     SYSTICK_LPIT->MCR = LPIT_MCR_DBG_EN_MASK | LPIT_MCR_DOZE_EN_MASK | LPIT_MCR_M_CEN_MASK;
+
+    /* Set timer control for channel 0 */
+    SYSTICK_LPIT->CHANNEL[SYSTICK_LPIT_CH].TCTRL = LPIT_TCTRL_TROT_MASK;
 
     /* Set timer period for channel 0 */
     SYSTICK_LPIT->CHANNEL[SYSTICK_LPIT_CH].TVAL = (CLOCK_GetIpFreq(kCLOCK_Lpit0) / tickRateHz) - 1;
