@@ -33,8 +33,8 @@
 #define  printf                 rt_kprintf
 
 // External non-declared functions/variables
-extern long rt_hw_usec_get(void);
-extern int  is_preemtive;
+extern long  rt_hw_usec_get(void);
+extern int   is_preemtive;
 
 // Define types
 typedef struct
@@ -112,7 +112,7 @@ void enc32(ub4 *block, ub4 *k1, ub4 *k2)
 static void *cipher_thread( void *parameter )
 {
     char   *data = NULL;
-    int     test, blk, end, num, idx, i;
+    int     test, blk, tim, num, idx, end, i;
     long    time_ini, time_end, time_op;
     // Cipher keys
     ub4     k1[8]={0,0,0,0,0,0,0,0}, k2[8]={0,0,0,0,0,0,0,0};
@@ -135,6 +135,7 @@ static void *cipher_thread( void *parameter )
         
         // Read file in blocks and queue them to be ciphered by a consumer thread
         blk = 0;
+        tim = 0;
         num = 0;
         idx = 0;
         time_cipher[test][TIME_MIN]    = 1000000000L;
@@ -171,7 +172,9 @@ static void *cipher_thread( void *parameter )
             {
 #ifdef DO_DECIPHER
                 dec32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
+                dec32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
 #else
+                enc32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
                 enc32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
 #endif
             } //endfor
@@ -189,9 +192,13 @@ static void *cipher_thread( void *parameter )
             sem_post( &global_write_sem );
 
             // Save timings
-            time_cipher[test][TIME_MEDIUM] += time_op;
-            if( time_op < time_cipher[test][TIME_MIN] ) time_cipher[test][TIME_MIN] = time_op;
-            if( time_op > time_cipher[test][TIME_MAX] ) time_cipher[test][TIME_MAX] = time_op;
+            if( time_op > 0 )  // Sometimes rt_hw_usec_get() takes an earlier tick (it's not IRQ protected)
+            {
+                time_cipher[test][TIME_MEDIUM] += time_op;
+                if( time_op < time_cipher[test][TIME_MIN] ) time_cipher[test][TIME_MIN] = time_op;
+                if( time_op > time_cipher[test][TIME_MAX] ) time_cipher[test][TIME_MAX] = time_op;
+                tim++;
+            } //endif
 
             // Increase index
             idx = (idx + 1) % NUM_BLOCKS;
@@ -202,7 +209,7 @@ static void *cipher_thread( void *parameter )
         } //wend
 
         // Calculate medium time for all cipher operations
-        time_cipher[test][TIME_MEDIUM] /= blk;
+        time_cipher[test][TIME_MEDIUM] /= tim;
 
         // Wait some seconds before starting a new test
         //printf("\n%s Cipher thread: %d bytes ciphered\n", RT_DEBUG_ARCH, num);

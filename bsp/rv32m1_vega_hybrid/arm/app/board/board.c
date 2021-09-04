@@ -160,12 +160,17 @@ int rt_hw_systick_init( void )
 
 long rt_hw_usec_get(void)
 {
-    // Get current usecs from first core tick counter
-    long  usec  = rt_cpu_index(0)->tick * (1000/RT_TICK_PER_SECOND) * 1000L;
-    // Note: Use the same time base for all cores (==LPIT0)
-    long  count = LPIT_GetCurrentTimerCount( LPIT0, 0 );  // Channel 0, please refer to system_RV32M1_xxx.c
+    register long     usec;
+    register int32_t  count;
     
-    return usec + (((tick_max_count-count) * (1000/RT_TICK_PER_SECOND) * 1000L) / tick_max_count);
+    // Get current usecs from first core tick counter
+    // Note: Use the same time base for all cores (==LPIT0)
+    // Note: Read channel 0 for SYSTEM TICK counter, please refer to system_RV32M1_xxx.c
+    count = LPIT_GetCurrentTimerCount( LPIT0, 0 );
+    usec  = (long) rt_cpu_index(0)->tick * (1000000L/RT_TICK_PER_SECOND);
+   
+    // LPIT is a decrementing counter
+    return usec + (((tick_max_count-count) * (1000000L/RT_TICK_PER_SECOND)) / (long) tick_max_count);
 }
 
 void rt_hw_us_delay( rt_uint32_t us )

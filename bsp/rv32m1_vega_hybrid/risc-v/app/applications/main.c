@@ -36,9 +36,9 @@
 #define  TIME_TYPES             3
 
 // External non-declared functions/variables
-extern unsigned long  rt_hw_usec_get(void);
-extern int            mnt_init(void);
-extern int            is_preemtive;
+extern long  rt_hw_usec_get(void);
+extern int   mnt_init(void);
+extern int   is_preemtive;
 
 // Define types
 typedef struct
@@ -75,7 +75,7 @@ static void *sdcard_reader_thread( void *parameter )
     char           *filename = (char *) parameter;
     char           *data     = NULL;
     FILE           *file;
-    int             test, blk, len, num, idx, first_block, i;
+    int             test, blk, tim, num, idx, len, first_block, i;
     long            time_ini, time_end, time_op;
 
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
@@ -97,6 +97,7 @@ static void *sdcard_reader_thread( void *parameter )
         
         // Read file in blocks and queue them to be ciphered by a consumer thread
         blk = 0;
+        tim = 0;
         num = 0;
         idx = 0;
         first_block = 1;
@@ -151,9 +152,13 @@ static void *sdcard_reader_thread( void *parameter )
             time_op  = time_end - time_ini;
             
             // Save timings
-            time_read[test][TIME_MEDIUM] += time_op;
-            if( time_op < time_read[test][TIME_MIN] ) time_read[test][TIME_MIN] = time_op;
-            if( time_op > time_read[test][TIME_MAX] ) time_read[test][TIME_MAX] = time_op;
+            if( time_op > 0 )  // Sometimes rt_hw_usec_get() takes an earlier tick (it's not IRQ protected)
+            {
+                time_read[test][TIME_MEDIUM] += time_op;
+                if( time_op < time_read[test][TIME_MIN] ) time_read[test][TIME_MIN] = time_op;
+                if( time_op > time_read[test][TIME_MAX] ) time_read[test][TIME_MAX] = time_op;
+                tim++;
+            } //endif
             
             // Mark block as read, and move semaphore to let the cipherer thread to run
 #ifdef TRACE_LOOP
@@ -180,7 +185,7 @@ static void *sdcard_reader_thread( void *parameter )
         //printf("\n%s Reader thread: %d bytes read from %s...\n", RT_DEBUG_ARCH, num, filename);
 
         // Calculate medium time for all read operations
-        time_read[test][TIME_MEDIUM] /= blk;
+        time_read[test][TIME_MEDIUM] /= tim;
         
         // Get all reader slots, till they will post on next test (to sync all thread when starting a new test)
         for( i=0; i<NUM_BLOCKS; i++ )
@@ -199,7 +204,7 @@ static void *sdcard_writer_thread( void *parameter )
     char           *filename = (char *) parameter;
     char           *data     = NULL;
     FILE           *file;
-    int             test, blk, len, end, num, idx;
+    int             test, blk, tim, num, idx, len, end;
     long            time_ini, time_end, time_op;
 
     printf("%s SDCARD writer thread started (%s)...\n", RT_DEBUG_ARCH, filename);
@@ -217,6 +222,7 @@ static void *sdcard_writer_thread( void *parameter )
         
         // Read file in blocks and queue them to be ciphered by a consumer thread
         blk = 0;
+        tim = 0;
         num = 0;
         idx = 0;
         time_write[test][TIME_MIN]    = 1000000000L;
@@ -250,9 +256,13 @@ static void *sdcard_writer_thread( void *parameter )
             time_op  = time_end - time_ini;
             
             // Save timings
-            time_write[test][TIME_MEDIUM] += time_op;
-            if( time_op < time_write[test][TIME_MIN] ) time_write[test][TIME_MIN] = time_op;
-            if( time_op > time_write[test][TIME_MAX] ) time_write[test][TIME_MAX] = time_op;
+            if( time_op > 0 )  // Sometimes rt_hw_usec_get() takes an earlier tick (it's not IRQ protected)
+            {
+                time_write[test][TIME_MEDIUM] += time_op;
+                if( time_op < time_write[test][TIME_MIN] ) time_write[test][TIME_MIN] = time_op;
+                if( time_op > time_write[test][TIME_MAX] ) time_write[test][TIME_MAX] = time_op;
+                tim++;
+            } //endif
             
             // Free allocated block data
             free( data );
@@ -283,7 +293,7 @@ static void *sdcard_writer_thread( void *parameter )
         time_full[test] = rt_hw_usec_get() - time_start;
 
         // Calculate medium time for all write operations
-        time_write[test][TIME_MEDIUM] /= blk;
+        time_write[test][TIME_MEDIUM] /= tim;
 
         // Finish thread
         fclose( file );

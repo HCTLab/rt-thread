@@ -193,19 +193,19 @@ int rt_hw_systick_init(void)
     return 0;
 }
 
-unsigned long rt_hw_usec_get(void)
+long rt_hw_usec_get(void)
 {
-    register unsigned long   usec;
-    register int32_t         count;
+    register long     usec;
+    register int32_t  count;
     
     // Get current usecs from first core tick counter
     // Note: Use the same time base for all cores (==LPIT0)
     // Note: Read channel 0 for SYSTEM TICK counter, please refer to system_RV32M1_xxx.c
     count = LPIT_GetCurrentTimerCount( LPIT0, 0 );
-    usec  = (unsigned long) rt_cpu_index(0)->tick * (1000000L/RT_TICK_PER_SECOND);
+    usec  = (long) rt_cpu_index(0)->tick * (1000000L/RT_TICK_PER_SECOND);
    
     // LPIT is a decrementing counter
-    return usec + (((tick_max_count-count) * (1000000L/RT_TICK_PER_SECOND)) / (unsigned long) tick_max_count);
+    return usec + (((tick_max_count-count) * (1000000L/RT_TICK_PER_SECOND)) / (long) tick_max_count);
 }
 
 const scg_lpfll_config_t g_appScgLpFllConfig_BOARD_BootClockRUN = {
