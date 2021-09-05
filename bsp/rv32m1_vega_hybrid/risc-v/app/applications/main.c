@@ -80,6 +80,20 @@ static void *sdcard_reader_thread( void *parameter )
 
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     
+    /* Verify rt_hw_usec_get() is returning good values (and there is no tick overflow)
+    for(tim=1;;tim++)
+    {
+        time_ini = rt_hw_usec_get();
+        time_end = rt_hw_usec_get();
+        time_op  = time_end - time_ini;
+        if( (time_op<0) || (time_op>100) )
+        {
+            printf("TIME [%8ld] ITER [%5d]\n", time_op, tim);
+            tim = 0;
+        } //endif
+    } //wend
+    */
+    
     // Execute multiple times this test
     for( test=0; test<TEST_NUM; test++ )
     {

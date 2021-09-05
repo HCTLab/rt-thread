@@ -144,13 +144,16 @@ void LPIT1_IRQHandler( void )
     SystemClearSystickFlag();
 }
 
-static long  tick_max_count = 0L;
+static uint32_t  tick_max_count   = 0L;
+static uint32_t  tick_max_count_o = 0L;
 
 int rt_hw_systick_init( void )
 {
     CLOCK_SetIpSrc( kCLOCK_Lpit1, kCLOCK_IpSrcFircAsync );
+
     // Note: Use the same time base for all cores (==LPIT0)
-    tick_max_count = CLOCK_GetIpFreq( kCLOCK_Lpit0 ) / RT_TICK_PER_SECOND;
+    tick_max_count   = ((uint32_t) CLOCK_GetIpFreq( kCLOCK_Lpit0 ) / RT_TICK_PER_SECOND);
+    tick_max_count_o = tick_max_count / 100;
 
     SystemSetupSystick( RT_TICK_PER_SECOND, 0 );
     SystemClearSystickFlag();
@@ -160,17 +163,46 @@ int rt_hw_systick_init( void )
 
 long rt_hw_usec_get(void)
 {
-    register long     usec;
-    register int32_t  count;
+    register long       usec;
+    register uint32_t   count1, count2;
+    //static   long       last_usec  = 0;
+    //register uint32_t   last_count = 0x0FFFFFFF;
     
     // Get current usecs from first core tick counter
     // Note: Use the same time base for all cores (==LPIT0)
     // Note: Read channel 0 for SYSTEM TICK counter, please refer to system_RV32M1_xxx.c
-    count = LPIT_GetCurrentTimerCount( LPIT0, 0 );
-    usec  = (long) rt_cpu_index(0)->tick * (1000000L/RT_TICK_PER_SECOND);
+    count1 = LPIT_GetCurrentTimerCount( LPIT0, 0 );
+    usec   = (long) rt_cpu_index(0)->tick;
+    count2 = LPIT_GetCurrentTimerCount( LPIT0, 0 );
+    if( count2 > count1 ) { usec = (long) rt_cpu_index(0)->tick; count1 = count2; }
+    usec   = usec * (1000000L/RT_TICK_PER_SECOND);
+
+    /* Timer integrity tests -> They should never trigger
+    if( count1 > tick_max_count )  // Usually TVAL=0x752FF for 10ms@40Mhz
+    {
+        rt_kprintf( "Error: CVAL [%08X]  TVAL [%08X]\n", count1, tick_max_count );
+        while(1);
+    } //endif
+    if( usec < last_usec )
+    {
+        rt_kprintf( "Error: USEC [%ld]  LAST [%ld]\n", usec, last_usec );
+        while(1);
+    }
+    if( (usec == last_usec) && (count1 >= last_count) )
+    {
+        rt_kprintf( "Error: COUNT [%08X]  LAST [%08X]\n", count1, last_count );
+        while(1);
+    }
+    last_usec  = usec;
+    last_count = count1;
+    */
    
     // LPIT is a decrementing counter
-    return usec + (((tick_max_count-count) * (1000000L/RT_TICK_PER_SECOND)) / (long) tick_max_count);
+    count1 = tick_max_count - count1;
+    
+    // Formula: tick_max_count - 10.000 usec | count - x
+    //return usec + ((count * (1000000L/RT_TICK_PER_SECOND)) / (long) tick_max_count);  // Overflows!
+    return usec + ((count1 * 100L) / (long) tick_max_count_o);  // Do NOT overflow!
 }
 
 void rt_hw_us_delay( rt_uint32_t us )
