@@ -1,9 +1,26 @@
+# for module compiling
+import os
 from building import *
 
-cwd     = GetCurrentDir()
-src     = Glob('*.c') + Glob('*.cpp')
-CPPPATH = [cwd]
+# get application to compile from environment variable APP
+env = Environment(ENV = os.environ)
+env['APP'] = os.environ.get('APP','default')
 
-group = DefineGroup('Applications', src, depend = [''], CPPPATH = CPPPATH)
+# if no APP defined, compile the cipherer test
+if env['APP'] == "":
+   app = "cipherer"
+else:
+   app = env['APP']
 
-Return('group')
+cwd = GetCurrentDir()
+objs = []
+path = os.path.join(cwd, app)
+
+if os.path.isfile(os.path.join(path, 'SConscript')):
+   objs = objs + SConscript(os.path.join(path, 'SConscript'))
+
+#print('APP=' + app + '  OBJS:')
+#for o in objs:
+#    print( o.name + ", ")
+
+Return('objs')

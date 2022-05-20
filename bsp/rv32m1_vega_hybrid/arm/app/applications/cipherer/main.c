@@ -22,7 +22,8 @@
 // Block sizes
 //#define TRACE_LOOP
 #define  TEST_NUM               4
-#define  NUM_BLOCKS             8
+#define  NUM_BLOCKS             1
+//#define  NUM_BLOCKS             8
 #define  BLOCK_SIZE            (16*1048)
 
 #define  TIME_MIN               0
