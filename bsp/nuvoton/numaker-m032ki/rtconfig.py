@@ -7,6 +7,8 @@ CROSS_TOOL='keil'
 
 if os.getenv('RTT_CC'):
 	CROSS_TOOL = os.getenv('RTT_CC')
+if os.getenv('RTT_ROOT'):
+    RTT_ROOT = os.getenv('RTT_ROOT')
 
 # cross_tool provides the cross compiler
 # EXEC_PATH is the compiler execute path, for example, CodeSourcery, Keil MDK, IAR
@@ -18,7 +20,7 @@ elif CROSS_TOOL == 'keil':
 	PLATFORM 	= 'armcc'
 	EXEC_PATH 	= r'C:\Keil_v5'
 elif CROSS_TOOL == 'iar':
-	PLATFORM 	= 'iar'
+	PLATFORM  = 'iccarm'
 	EXEC_PATH 	= r'C:\Program Files (x86)\IAR Systems\Embedded Workbench 8.2'
 
 if os.getenv('RTT_EXEC_PATH'):
@@ -34,6 +36,7 @@ if PLATFORM == 'gcc':
     CC = PREFIX + 'gcc'
     AS = PREFIX + 'gcc'
     AR = PREFIX + 'ar'
+    CXX = PREFIX + 'g++'
     LINK = PREFIX + 'gcc'
     TARGET_EXT = 'elf'
     SIZE = PREFIX + 'size'
@@ -53,6 +56,8 @@ if PLATFORM == 'gcc':
         AFLAGS += ' -gdwarf-2'
     else:
         CFLAGS += ' -O2'
+
+    CXXFLAGS = CFLAGS 
 
     POST_ACTION = OBJCPY + ' -O binary $TARGET rtthread.bin\n' + SIZE + ' $TARGET \n'
      
@@ -82,7 +87,7 @@ elif PLATFORM == 'armcc':
 
     POST_ACTION = 'fromelf --bin $TARGET --output rtthread.bin \nfromelf -z $TARGET'
 
-elif PLATFORM == 'iar':
+elif PLATFORM == 'iccarm':
     # toolchains
     CC = 'iccarm'
     AS = 'iasmarm'
@@ -122,3 +127,11 @@ elif PLATFORM == 'iar':
 
     EXEC_PATH += '/arm/bin/'
     POST_ACTION = ''
+
+def dist_handle(BSP_ROOT, dist_dir):
+    import sys
+    cwd_path = os.getcwd()
+    sys.path.append(os.path.join(os.path.dirname(BSP_ROOT), 'tools'))
+    from sdk_dist import dist_do_building
+    dist_do_building(BSP_ROOT, dist_dir)
+

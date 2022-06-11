@@ -162,7 +162,7 @@ static struct stm32_pwm stm32_pwm_obj[] =
 /* APBx timer clocks frequency doubler state related to APB1CLKDivider value */
 static void pclkx_doubler_get(rt_uint32_t *pclk1_doubler, rt_uint32_t *pclk2_doubler)
 {
-    rt_uint32_t flatency = 0;
+    uint32_t flatency = 0;
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
 
     RT_ASSERT(pclk1_doubler != RT_NULL);
@@ -290,7 +290,7 @@ static rt_err_t drv_pwm_set(TIM_HandleTypeDef *htim, struct rt_pwm_configuration
 
 #if defined(SOC_SERIES_STM32F2) || defined(SOC_SERIES_STM32F4) || defined(SOC_SERIES_STM32F7)
     if (htim->Instance == TIM9 || htim->Instance == TIM10 || htim->Instance == TIM11)
-#elif defined(SOC_SERIES_STM32L4) || defined(SOC_SERIES_STM32H7)
+#elif defined(SOC_SERIES_STM32L4) || defined(SOC_SERIES_STM32H7)|| defined(SOC_SERIES_STM32F3)
     if (htim->Instance == TIM15 || htim->Instance == TIM16 || htim->Instance == TIM17)
 #elif defined(SOC_SERIES_STM32MP1)
     if (htim->Instance == TIM4)
@@ -581,11 +581,23 @@ static void pwm_get_channel(void)
 #ifdef BSP_USING_PWM9_CH4
     stm32_pwm_obj[PWM9_INDEX].channel |= 1 << 3;
 #endif
+#ifdef BSP_USING_PWM10_CH1
+    stm32_pwm_obj[PWM10_INDEX].channel |= 1 << 0;
+#endif
+#ifdef BSP_USING_PWM11_CH1
+    stm32_pwm_obj[PWM11_INDEX].channel |= 1 << 0;
+#endif
 #ifdef BSP_USING_PWM12_CH1
     stm32_pwm_obj[PWM12_INDEX].channel |= 1 << 0;
 #endif
 #ifdef BSP_USING_PWM12_CH2
     stm32_pwm_obj[PWM12_INDEX].channel |= 1 << 1;
+#endif
+#ifdef BSP_USING_PWM16_CH1
+    stm32_pwm_obj[PWM16_INDEX].channel |= 1 << 0;
+#endif
+#ifdef BSP_USING_PWM17_CH1
+    stm32_pwm_obj[PWM17_INDEX].channel |= 1 << 0;
 #endif
 }
 

@@ -13,12 +13,13 @@
 #include <string.h>
 #include <ctype.h>
 #include <sys/time.h>
+#include <sys/errno.h>
 
 #include <at_socket.h>
 #include <at_device.h>
 
 #ifdef SAL_USING_POSIX
-#include <dfs_poll.h>
+#include <poll.h>
 #endif
 
 #include <arpa/inet.h>
@@ -78,7 +79,7 @@ struct at_socket *at_get_socket(int socket)
 }
 
 /* get a block to the AT socket receive list*/
-static size_t at_recvpkt_put(rt_slist_t *rlist, const char *ptr, size_t length)
+static rt_err_t at_recvpkt_put(rt_slist_t *rlist, const char *ptr, size_t length)
 {
     at_recv_pkt_t pkt = RT_NULL;
 
@@ -86,7 +87,7 @@ static size_t at_recvpkt_put(rt_slist_t *rlist, const char *ptr, size_t length)
     if (pkt == RT_NULL)
     {
         LOG_E("No memory for receive packet table!");
-        return 0;
+        return -RT_ENOMEM;
     }
 
     pkt->bfsz_totle = length;
@@ -95,7 +96,7 @@ static size_t at_recvpkt_put(rt_slist_t *rlist, const char *ptr, size_t length)
 
     rt_slist_append(rlist, &pkt->list);
 
-    return length;
+    return RT_EOK;
 }
 
 /* delete and free all receive buffer list */
@@ -109,9 +110,10 @@ static int at_recvpkt_all_delete(rt_slist_t *rlist)
         return 0;
     }
 
-    for(node = rt_slist_first(rlist); node; node = rt_slist_next(node))
+    for(node = rt_slist_first(rlist); node;)
     {
         pkt = rt_slist_entry(node, struct at_recv_pkt, list);
+        node = rt_slist_next(node);
         if (pkt->buff)
         {
             rt_free(pkt->buff);
@@ -156,6 +158,7 @@ static int at_recvpkt_node_delete(rt_slist_t *rlist, rt_slist_t *node)
 static size_t at_recvpkt_get(rt_slist_t *rlist, char *mem, size_t len)
 {
     rt_slist_t *node = RT_NULL;
+    rt_slist_t *free_node = RT_NULL;
     at_recv_pkt_t pkt = RT_NULL;
     size_t content_pos = 0, page_pos = 0;
 
@@ -164,29 +167,32 @@ static size_t at_recvpkt_get(rt_slist_t *rlist, char *mem, size_t len)
         return 0;
     }
 
-    for (node = rt_slist_first(rlist); node; node = rt_slist_next(node))
+    for (node = rt_slist_first(rlist); node;)
     {
         pkt = rt_slist_entry(node, struct at_recv_pkt, list);
+
+        free_node = node;
+        node = rt_slist_next(node);
 
         page_pos = pkt->bfsz_totle - pkt->bfsz_index;
 
         if (page_pos >= len - content_pos)
         {
-            memcpy((char *) mem + content_pos, pkt->buff + pkt->bfsz_index, len - content_pos);
+            rt_memcpy((char *) mem + content_pos, pkt->buff + pkt->bfsz_index, len - content_pos);
             pkt->bfsz_index += len - content_pos;
             if (pkt->bfsz_index == pkt->bfsz_totle)
             {
-                at_recvpkt_node_delete(rlist, node);
+                at_recvpkt_node_delete(rlist, free_node);
             }
             content_pos = len;
             break;
         }
         else
         {
-            memcpy((char *) mem + content_pos, pkt->buff + pkt->bfsz_index, page_pos);
+            rt_memcpy((char *) mem + content_pos, pkt->buff + pkt->bfsz_index, page_pos);
             content_pos += page_pos;
             pkt->bfsz_index += page_pos;
-            at_recvpkt_node_delete(rlist, node);
+            at_recvpkt_node_delete(rlist, free_node);
         }
     }
 
@@ -312,7 +318,7 @@ static struct at_socket *alloc_socket_by_device(struct at_device *device, enum a
     if (at_slock == RT_NULL)
     {
         /* create AT socket lock */
-        at_slock = rt_mutex_create("at_slock", RT_IPC_FLAG_FIFO);
+        at_slock = rt_mutex_create("at_slock", RT_IPC_FLAG_PRIO);
         if (at_slock == RT_NULL)
         {
             LOG_E("No memory for socket allocation lock!");
@@ -366,7 +372,7 @@ static struct at_socket *alloc_socket_by_device(struct at_device *device, enum a
 
     rt_snprintf(name, RT_NAME_MAX, "%s%d", "at_skt", idx);
     /* create AT socket receive ring buffer lock */
-    if((sock->recv_lock = rt_mutex_create(name, RT_IPC_FLAG_FIFO)) == RT_NULL)
+    if((sock->recv_lock = rt_mutex_create(name, RT_IPC_FLAG_PRIO)) == RT_NULL)
     {
         LOG_E("No memory for socket receive mutex create.");
         rt_sem_delete(sock->recv_notice);
@@ -651,14 +657,20 @@ static void at_recv_notice_cb(struct at_socket *sock, at_socket_evt_t event, con
     RT_ASSERT(event == AT_SOCKET_EVT_RECV);
 
     /* check the socket object status */
-    if (sock->magic != AT_SOCKET_MAGIC)
+    if (sock->magic != AT_SOCKET_MAGIC || sock->state == AT_SOCKET_CLOSED)
     {
+        rt_free((void *)buff);
         return;
     }
 
     /* put receive buffer to receiver packet list */
     rt_mutex_take(sock->recv_lock, RT_WAITING_FOREVER);
-    at_recvpkt_put(&(sock->recvpkt_list), buff, bfsz);
+    if (at_recvpkt_put(&(sock->recvpkt_list), buff, bfsz) != RT_EOK)
+    {
+        rt_free((void *)buff);
+        rt_mutex_release(sock->recv_lock);
+        return;
+    }
     rt_mutex_release(sock->recv_lock);
 
     rt_sem_release(sock->recv_notice);
@@ -815,7 +827,7 @@ int at_recvfrom(int socket, void *mem, size_t len, int flags, struct sockaddr *f
         /* wait the receive semaphore */
         if (rt_sem_take(sock->recv_notice, timeout) < 0)
         {
-            LOG_E("AT socket (%d) receive timeout (%d)!", socket, timeout);
+            LOG_D("AT socket (%d) receive timeout (%d)!", socket, timeout);
             errno = EAGAIN;
             result = -1;
             goto __exit;
@@ -1100,7 +1112,7 @@ static uint32_t ipstr_to_u32(char *ipstr)
 struct hostent *at_gethostbyname(const char *name)
 {
     struct at_device *device = RT_NULL;
-    ip_addr_t addr;
+    ip_addr_t addr = {0};
     char ipstr[16] = { 0 };
     /* buffer variables for at_gethostbyname() */
     static struct hostent s_hostent;
@@ -1281,7 +1293,7 @@ int at_getaddrinfo(const char *nodename, const char *servname,
     {
         return EAI_MEMORY;
     }
-    memset(ai, 0, total_size);
+    rt_memset(ai, 0, total_size);
     /* cast through void* to get rid of alignment warnings */
     sa = (struct sockaddr_storage *) (void *) ((uint8_t *) ai + sizeof(struct addrinfo));
     struct sockaddr_in *sa4 = (struct sockaddr_in *) sa;
@@ -1310,7 +1322,7 @@ int at_getaddrinfo(const char *nodename, const char *servname,
     {
         /* copy nodename to canonname if specified */
         ai->ai_canonname = ((char *) ai + sizeof(struct addrinfo) + sizeof(struct sockaddr_storage));
-        memcpy(ai->ai_canonname, nodename, namelen);
+        rt_memcpy(ai->ai_canonname, nodename, namelen);
         ai->ai_canonname[namelen] = 0;
     }
     ai->ai_addrlen = sizeof(struct sockaddr_storage);

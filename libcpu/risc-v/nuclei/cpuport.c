@@ -143,9 +143,7 @@ void rt_hw_context_switch_interrupt(rt_ubase_t from, rt_ubase_t to)
  */
 void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to)
 {
-    rt_interrupt_from_thread = from;
-    rt_interrupt_to_thread = to;
-    RT_YIELD();
+    rt_hw_context_switch_interrupt(from, to);
 }
 
 /**
@@ -154,7 +152,7 @@ void rt_hw_context_switch(rt_ubase_t from, rt_ubase_t to)
  */
 RT_WEAK void rt_hw_cpu_shutdown()
 {
-    rt_uint32_t level;
+    rt_base_t level;
     rt_kprintf("shutdown...\n");
 
     level = rt_hw_interrupt_disable();

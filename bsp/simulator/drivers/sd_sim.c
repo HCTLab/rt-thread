@@ -14,7 +14,7 @@
 #include <dfs.h>
 
 #define DBG_TAG    "sd.sim"
-#define DBG_LVL    DBG_INFO
+#define DBG_LVL    DBG_WARNING
 #include <rtdbg.h>
 
 #define SDCARD_SIM  "sd.bin"
@@ -140,7 +140,7 @@ rt_err_t rt_hw_sdcard_init(const char *spi_device_name)
     sd = &_sdcard;
     device = &(sd->parent);
 
-    lock = rt_mutex_create("lock", RT_IPC_FLAG_FIFO);
+    lock = rt_mutex_create("lock", RT_IPC_FLAG_PRIO);
     if (lock == RT_NULL)
     {
         LOG_E("Create mutex in rt_hw_sdcard_init failed!");

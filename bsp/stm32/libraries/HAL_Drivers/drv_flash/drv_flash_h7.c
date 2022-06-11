@@ -18,7 +18,7 @@
 #include "drv_config.h"
 #include "drv_flash.h"
 
-#if defined(PKG_USING_FAL)
+#if defined(RT_USING_FAL)
 #include "fal.h"
 #endif
 
@@ -78,7 +78,7 @@ int stm32_flash_write(rt_uint32_t addr, const rt_uint8_t *buf, size_t size)
         LOG_E("write outrange flash size! addr is (0x%p)", (void *)(addr + size));
         return -RT_EINVAL;
     }
-    
+
     if(addr % 32 != 0)
     {
         LOG_E("write addr must be 32-byte alignment");
@@ -171,7 +171,7 @@ int stm32_flash_erase(rt_uint32_t addr, size_t size)
     {
         size_bank1 = 0;
         addr_bank2 = addr;
-        size_bank2 = size; 
+        size_bank2 = size;
     }
     else
     {
@@ -188,7 +188,7 @@ int stm32_flash_erase(rt_uint32_t addr, size_t size)
     EraseInitStruct.TypeErase     = FLASH_TYPEERASE_SECTORS;
     EraseInitStruct.VoltageRange  = FLASH_VOLTAGE_RANGE_3;
     SCB_DisableDCache();
-    
+
     if(size_bank1)
     {
         EraseInitStruct.Sector    = (addr_bank1 - FLASH_BANK1_BASE) / FLASH_SECTOR_SIZE;
@@ -227,7 +227,7 @@ __exit:
     return size;
 }
 
-#if defined(PKG_USING_FAL)
+#if defined(RT_USING_FAL)
 static int fal_flash_read_128k(long offset, rt_uint8_t *buf, size_t size);
 static int fal_flash_write_128k(long offset, const rt_uint8_t *buf, size_t size);
 static int fal_flash_erase_128k(long offset, size_t size);

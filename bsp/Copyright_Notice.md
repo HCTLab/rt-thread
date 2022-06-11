@@ -8,7 +8,44 @@ RT-Thread is an open source operating system, which is released under Apache Lic
 
 The peripheral library or firmware library of the chip manufacturer is authorized according to the manufacturer's license, and these files are released according to the original license agreement.
 
-## BSP's License and Coyright:
+## BSP's License and Copyright:
+
+### acm32f0x0-nucleo
+
+License:  bsd-new
+
+Copyright: Copyright (c) 2021, AisinoChip
+
+Path:
+
+- bsp/acm32f0x0-nucleo/libraries
+
+### apm32
+
+bsp 列表：
+- apm32f103xe-minibroard
+
+------
+
+License: GEEHY SOFTWARE PACKAGE LICENSE
+
+Copyright: Copyright (C) 2020-2022 Geehy Semiconductor
+
+Path:
+
+- bsp\apm32\libraries\APM32F10x_Library\APM32F10x_StdPeriphDriver
+- bsp\apm32\libraries\APM32F10x_Library\Device
+- bsp\apm32\libraries\APM32F10x_Library\USB_Device_Lib
+
+------
+
+License: bsd-new
+
+Copyright (c) 2009-2018 Arm Limited
+
+Path:
+
+- bsp\apm32\libraries\APM32F10x_Library\CMSIS\Include
 
 ### apollo2
 
@@ -125,6 +162,17 @@ Path:
 - bsp/essemi/es32f0654/libraries/CMSIS/Include
 - bsp/essemi/es8p508x/libraries/CMSIS
 
+###fm33lc026
+
+License: Mulan PSL v1
+
+Copyright: Copyright (c) [2019] [Fudan Microelectronics]
+
+Path:
+
+- bsp/fm33lc026\libraries\FM33LC0xx_FL_Driver
+- bsp/fm33lc026\libraries\FM
+
 ### frdm-k64f
 
 License: bsd-new
@@ -204,6 +252,48 @@ Path:
 
 - bsp/hc32f4a0/Libraries/CMSIS
 - bsp/hc32f4a0/Libraries/HC32F4A0_StdPeriph_Driver
+
+### hc32f460
+
+License: bsd-new
+
+Copyright: Copyright (c) 2020, Huada Semiconductor Co., Ltd.
+
+Path:
+
+- bsp/hc32f460/Libraries/CMSIS
+- bsp/hc32f460/Libraries/HC32F460_StdPeriph_Driver
+
+### hc32l196
+
+License: bsd-new
+
+Copyright: Copyright (c) 2020, Huada Semiconductor Co., Ltd.
+
+Path:
+
+- bsp/hc32l196/Libraries/CMSIS
+- bsp/hc32l196/Libraries/HC32L196_StdPeriph_Driver
+
+### hk32
+
+License: free-unknown
+
+Copyright: Copyright (c) HKMicroChip
+
+Path:
+
+- bsp/hk32/libraries/HK32F0xx_StdPeriph_Driver
+
+------
+
+License: bsd-new
+
+Copyright: Copyright (c) 2009 - 2013 ARM LIMITED
+
+Path:
+
+- bsp/hk32/libraries/HK32F0xx_StdPeriph_Driver/CMSIS
 
 ### imx6sx
 
@@ -642,7 +732,6 @@ Path:
 bsp 列表：
 
 - swm320
-- swm320-lq100
 
 ------
 
@@ -653,7 +742,6 @@ Copyright: COPYRIGHT 2012 Synwit Technology
 Path:
 
 - bsp/swm320/libraries/CMSIS/DeviceSupport
-- bsp/swm320-lq100/Libraries/SWM320_StdPeriph_Driver
 
 ------
 
@@ -664,7 +752,16 @@ Copyright:  Copyright (c) 2009 - 2014 ARM LIMITED
 Path:
 
 - bsp/swm320/libraries/CMSIS
-- bsp/swm320-lq100/Libraries/CMSIS/CoreSupport
+
+### tae32f5300
+
+License: BSD 3-Clause
+
+Copyright (c) 2020 Tai-Action.
+
+Path:
+
+- bsp/tae32f5300/Libraries/TAE32F53xx_StdPeriph_Driver
 
 ### tm4c
 
@@ -717,3 +814,20 @@ Path:
 
 - bsp/zynqmp-r5-axu4ev/drivers/Zynq_HAL_Driver
 
+### n32
+
+License: 未注明
+
+Copyright: Copyright (c) 2019, Nations Technologies Inc.
+
+Path:
+
+- bsp/n32g452xx/n32g452xx-mini-system/board/msp
+
+License: bsd-new
+
+Copyright: Copyright (c) 2010-2015 ARM Limited
+
+Path:
+
+- bsp/n32g452xx/Libraries/N32_Std_Driver/CMSIS

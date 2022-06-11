@@ -29,10 +29,14 @@ import sys
 import string
 import utils
 import operator
+import rtconfig
+import platform
 
 from SCons.Script import *
 from utils import _make_path_relative
 from mkdist import do_copy_file
+from options import AddOptions
+
 
 BuildOptions = {}
 Projects = []
@@ -148,83 +152,7 @@ def AddOptions():
 
     global BuildOptions
 
-    # ===== Add option to SCons =====
-    AddOption('--dist',
-                      dest = 'make-dist',
-                      action = 'store_true',
-                      default = False,
-                      help = 'make distribution')
-    AddOption('--dist-strip',
-                      dest = 'make-dist-strip',
-                      action = 'store_true',
-                      default = False,
-                      help = 'make distribution and strip useless files')
-    AddOption('--dist-ide',
-                      dest = 'make-dist-ide',
-                      action = 'store_true',
-                      default = False,
-                      help = 'make distribution for RT-Thread Studio IDE')
-    AddOption('--project-path',
-                      dest = 'project-path',
-                      type = 'string',
-                      default = None,
-                      help = 'set dist-ide project output path')
-    AddOption('--project-name',
-                      dest = 'project-name',
-                      type = 'string',
-                      default = None,
-                      help = 'set project name')
-    AddOption('--reset-project-config',
-                      dest = 'reset-project-config',
-                      action = 'store_true',
-                      default = False,
-                      help = 'reset the project configurations to default')
-    AddOption('--cscope',
-                      dest = 'cscope',
-                      action = 'store_true',
-                      default = False,
-                      help = 'Build Cscope cross reference database. Requires cscope installed.')
-    AddOption('--clang-analyzer',
-                      dest = 'clang-analyzer',
-                      action = 'store_true',
-                      default = False,
-                      help = 'Perform static analyze with Clang-analyzer. ' + \
-                           'Requires Clang installed.\n' + \
-                           'It is recommended to use with scan-build like this:\n' + \
-                           '`scan-build scons --clang-analyzer`\n' + \
-                           'If things goes well, scan-build will instruct you to invoke scan-view.')
-    AddOption('--buildlib',
-                      dest = 'buildlib',
-                      type = 'string',
-                      help = 'building library of a component')
-    AddOption('--cleanlib',
-                      dest = 'cleanlib',
-                      action = 'store_true',
-                      default = False,
-                      help = 'clean up the library by --buildlib')
-    AddOption('--target',
-                      dest = 'target',
-                      type = 'string',
-                      help = 'set target project: mdk/mdk4/mdk5/iar/vs/vsc/ua/cdk/ses/makefile/eclipse/codelite/cmake')
-    AddOption('--stackanalysis',
-                dest = 'stackanalysis',
-                action = 'store_true',
-                default = False,
-                help = 'thread stack static analysis')
-    AddOption('--genconfig',
-                dest = 'genconfig',
-                action = 'store_true',
-                default = False,
-                help = 'Generate .config from rtconfig.h')
-    AddOption('--useconfig',
-                dest = 'useconfig',
-                type = 'string',
-                help = 'make rtconfig.h from config file.')
-    AddOption('--verbose',
-                dest = 'verbose',
-                action = 'store_true',
-                default = False,
-                help = 'print verbose information during build')
+    AddOptions()
 
     # ===== Options got from PrepareBuilding()
     #if env['PLATFORM'] != 'win32':
@@ -289,6 +217,8 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
                 'eclipse':('gcc', 'gcc'),
                 'ses' : ('gcc', 'gcc'),
                 'cmake':('gcc', 'gcc'),
+                'cmake-armclang':('keil', 'armclang'),
+                'xmake':('gcc', 'gcc'),
                 'codelite' : ('gcc', 'gcc')}
     tgt_name = GetOption('target')
 
@@ -317,7 +247,7 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
             utils.ReloadModule(rtconfig)
 
     # add compability with Keil MDK 4.6 which changes the directory of armcc.exe
-    if rtconfig.PLATFORM == 'armcc' or rtconfig.PLATFORM == 'armclang':
+    if rtconfig.PLATFORM in ['armcc', 'armclang']:
         if rtconfig.PLATFORM == 'armcc' and not os.path.isfile(os.path.join(rtconfig.EXEC_PATH, 'armcc.exe')):
             if rtconfig.EXEC_PATH.find('bin40') > 0:
                 rtconfig.EXEC_PATH = rtconfig.EXEC_PATH.replace('bin40', 'armcc/bin')
@@ -331,7 +261,7 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
         env['LIBLINKSUFFIX'] = '.lib'
         env['LIBDIRPREFIX'] = '--userlibpath '
 
-    elif rtconfig.PLATFORM == 'iar':
+    elif rtconfig.PLATFORM == 'iccarm':
         env['LIBPREFIX'] = ''
         env['LIBSUFFIX'] = '.a'
         env['LIBLINKPREFIX'] = ''
@@ -402,8 +332,13 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
         from WCS import ThreadStackStaticAnalysis
         ThreadStackStaticAnalysis(Env)
         exit(0)
+    if platform.system() != 'Windows':
+        if GetOption('menuconfig'):
+            from menuconfig import menuconfig
+            menuconfig(Rtt_Root)
+            exit(0)
 
-    if GetOption('pyconfig_silent'):
+    if GetOption('pyconfig_silent'):    
         from menuconfig import guiconfig_silent
 
         guiconfig_silent(Rtt_Root)
@@ -472,7 +407,6 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
     return objs
 
 def PrepareModuleBuilding(env, root_directory, bsp_directory):
-    import rtconfig
 
     global BuildOptions
     global Env
@@ -494,17 +428,6 @@ def PrepareModuleBuilding(env, root_directory, bsp_directory):
     f.close()
     PreProcessor.process_contents(contents)
     BuildOptions = PreProcessor.cpp_namespace
-
-    # add build/clean library option for library checking
-    AddOption('--buildlib',
-              dest='buildlib',
-              type='string',
-              help='building library of a component')
-    AddOption('--cleanlib',
-              dest='cleanlib',
-              action='store_true',
-              default=False,
-              help='clean up the library by --buildlib')
 
     # add program path
     env.PrependENVPath('PATH', rtconfig.EXEC_PATH)
@@ -572,11 +495,22 @@ def AddDepend(option):
 
 def MergeGroup(src_group, group):
     src_group['src'] = src_group['src'] + group['src']
+    src_group['src'].sort()
+    if 'CFLAGS' in group:
+        if 'CFLAGS' in src_group:
+            src_group['CFLAGS'] = src_group['CFLAGS'] + group['CFLAGS']
+        else:
+            src_group['CFLAGS'] = group['CFLAGS']
     if 'CCFLAGS' in group:
         if 'CCFLAGS' in src_group:
             src_group['CCFLAGS'] = src_group['CCFLAGS'] + group['CCFLAGS']
         else:
             src_group['CCFLAGS'] = group['CCFLAGS']
+    if 'CXXFLAGS' in group:
+        if 'CXXFLAGS' in src_group:
+            src_group['CXXFLAGS'] = src_group['CXXFLAGS'] + group['CXXFLAGS']
+        else:
+            src_group['CXXFLAGS'] = group['CXXFLAGS']
     if 'CPPPATH' in group:
         if 'CPPPATH' in src_group:
             src_group['CPPPATH'] = src_group['CPPPATH'] + group['CPPPATH']
@@ -594,11 +528,21 @@ def MergeGroup(src_group, group):
             src_group['ASFLAGS'] = group['ASFLAGS']
 
     # for local CCFLAGS/CPPPATH/CPPDEFINES
+    if 'LOCAL_CFLAGS' in group:
+        if 'LOCAL_CFLAGS' in src_group:
+            src_group['LOCAL_CFLAGS'] = src_group['LOCAL_CFLAGS'] + group['LOCAL_CFLAGS']
+        else:
+            src_group['LOCAL_CFLAGS'] = group['LOCAL_CFLAGS']
     if 'LOCAL_CCFLAGS' in group:
         if 'LOCAL_CCFLAGS' in src_group:
             src_group['LOCAL_CCFLAGS'] = src_group['LOCAL_CCFLAGS'] + group['LOCAL_CCFLAGS']
         else:
             src_group['LOCAL_CCFLAGS'] = group['LOCAL_CCFLAGS']
+    if 'LOCAL_CXXFLAGS' in group:
+        if 'LOCAL_CXXFLAGS' in src_group:
+            src_group['LOCAL_CXXFLAGS'] = src_group['LOCAL_CXXFLAGS'] + group['LOCAL_CXXFLAGS']
+        else:
+            src_group['LOCAL_CXXFLAGS'] = group['LOCAL_CXXFLAGS']
     if 'LOCAL_CPPPATH' in group:
         if 'LOCAL_CPPPATH' in src_group:
             src_group['LOCAL_CPPPATH'] = src_group['LOCAL_CPPPATH'] + group['LOCAL_CPPPATH']
@@ -631,6 +575,17 @@ def MergeGroup(src_group, group):
         else:
             src_group['LOCAL_ASFLAGS'] = group['LOCAL_ASFLAGS']
 
+def _PretreatListParameters(target_list):
+    while '' in target_list: # remove null strings
+        target_list.remove('')
+    while ' ' in target_list: # remove ' '
+        target_list.remove(' ')
+
+    if(len(target_list) == 0):
+        return False # ignore this list, don't add this list to the parameter
+
+    return True # permit to add this list to the parameter
+
 def DefineGroup(name, src, depend, **parameters):
     global Env
     if not GetDepend(depend):
@@ -654,20 +609,38 @@ def DefineGroup(name, src, depend, **parameters):
     else:
         group['src'] = src
 
+    if 'CFLAGS' in group:
+        target = group['CFLAGS']
+        if len(target) > 0:
+            Env.AppendUnique(CFLAGS = target)
     if 'CCFLAGS' in group:
-        Env.AppendUnique(CCFLAGS = group['CCFLAGS'])
+        target = group['CCFLAGS']
+        if len(target) > 0:
+            Env.AppendUnique(CCFLAGS = target)
+    if 'CXXFLAGS' in group:
+        target = group['CXXFLAGS']
+        if len(target) > 0:
+            Env.AppendUnique(CXXFLAGS = target)
     if 'CPPPATH' in group:
-        paths = []
-        for item in group['CPPPATH']:
-            paths.append(os.path.abspath(item))
-        group['CPPPATH'] = paths
-        Env.AppendUnique(CPPPATH = group['CPPPATH'])
+        target = group['CPPPATH']
+        if _PretreatListParameters(target) == True:
+            paths = []
+            for item in target:
+                paths.append(os.path.abspath(item))
+            target = paths
+            Env.AppendUnique(CPPPATH = target)
     if 'CPPDEFINES' in group:
-        Env.AppendUnique(CPPDEFINES = group['CPPDEFINES'])
+        target = group['CPPDEFINES']
+        if _PretreatListParameters(target) == True:
+            Env.AppendUnique(CPPDEFINES = target)
     if 'LINKFLAGS' in group:
-        Env.AppendUnique(LINKFLAGS = group['LINKFLAGS'])
+        target = group['LINKFLAGS']
+        if len(target) > 0:
+            Env.AppendUnique(LINKFLAGS = target)
     if 'ASFLAGS' in group:
-        Env.AppendUnique(ASFLAGS = group['ASFLAGS'])
+        target = group['ASFLAGS']
+        if len(target) > 0:
+            Env.AppendUnique(ASFLAGS = target)
     if 'LOCAL_CPPPATH' in group:
         paths = []
         for item in group['LOCAL_CPPPATH']:
@@ -678,11 +651,18 @@ def DefineGroup(name, src, depend, **parameters):
     # import rtconfig
 
     if rtconfig.PLATFORM == 'gcc':
+        if 'CFLAGS' in group:
+            group['CFLAGS'] = utils.GCCC99Patch(group['CFLAGS'])
         if 'CCFLAGS' in group:
             group['CCFLAGS'] = utils.GCCC99Patch(group['CCFLAGS'])
+        if 'CXXFLAGS' in group:
+            group['CXXFLAGS'] = utils.GCCC99Patch(group['CXXFLAGS'])
         if 'LOCAL_CCFLAGS' in group:
             group['LOCAL_CCFLAGS'] = utils.GCCC99Patch(group['LOCAL_CCFLAGS'])
-
+        if 'LOCAL_CXXFLAGS' in group:
+            group['LOCAL_CXXFLAGS'] = utils.GCCC99Patch(group['LOCAL_CXXFLAGS'])
+        if 'LOCAL_CFLAGS' in group:
+            group['LOCAL_CFLAGS'] = utils.GCCC99Patch(group['LOCAL_CFLAGS'])
     # check whether to clean up library
     if GetOption('cleanlib') and os.path.exists(os.path.join(group['path'], GroupLibFullName(name, Env))):
         if group['src'] != []:
@@ -692,9 +672,13 @@ def DefineGroup(name, src, depend, **parameters):
                 os.unlink(fn)
 
     if 'LIBS' in group:
-        Env.AppendUnique(LIBS = group['LIBS'])
+        target = group['LIBS']
+        if _PretreatListParameters(target) == True:
+            Env.AppendUnique(LIBS = target)
     if 'LIBPATH' in group:
-        Env.AppendUnique(LIBPATH = group['LIBPATH'])
+        target = group['LIBPATH']
+        if _PretreatListParameters(target) == True:
+            Env.AppendUnique(LIBPATH = target)
 
     # check whether to build group library
     if 'LIBRARY' in group:
@@ -742,7 +726,7 @@ def PreBuilding():
         a()
 
 def GroupLibName(name, env):
-    import rtconfig
+    
     if rtconfig.PLATFORM == 'armcc':
         return name + '_rvds'
     elif rtconfig.PLATFORM == 'gcc':
@@ -777,14 +761,16 @@ def DoBuilding(target, arch, objects, dolink = False):
 
     # handle local group
     def local_group(group, objects):
-        if 'LOCAL_CCFLAGS' in group or 'LOCAL_CPPPATH' in group or 'LOCAL_CPPDEFINES' in group or 'LOCAL_ASFLAGS' in group:
+        if 'LOCAL_CFLAGS' in group or 'LOCAL_CXXFLAGS' in group or 'LOCAL_CCFLAGS' in group or 'LOCAL_CPPPATH' in group or 'LOCAL_CPPDEFINES' in group or 'LOCAL_ASFLAGS' in group:
+            CFLAGS = Env.get('CFLAGS', '') + group.get('LOCAL_CFLAGS', '')
             CCFLAGS = Env.get('CCFLAGS', '') + group.get('LOCAL_CCFLAGS', '')
+            CXXFLAGS = Env.get('CXXFLAGS', '') + group.get('LOCAL_CXXFLAGS', '')
             CPPPATH = Env.get('CPPPATH', ['']) + group.get('LOCAL_CPPPATH', [''])
             CPPDEFINES = Env.get('CPPDEFINES', ['']) + group.get('LOCAL_CPPDEFINES', [''])
             ASFLAGS = Env.get('ASFLAGS', '') + group.get('LOCAL_ASFLAGS', '')
 
             for source in group['src']:
-                objects.append(Env.Object(source, CCFLAGS = CCFLAGS, ASFLAGS = ASFLAGS,
+                objects.append(Env.Object(source, CFLAGS = CFLAGS, CCFLAGS = CCFLAGS, CXXFLAGS = CXXFLAGS, ASFLAGS = ASFLAGS,
                     CPPPATH = CPPPATH, CPPDEFINES = CPPDEFINES))
 
             return True
@@ -814,7 +800,7 @@ def DoBuilding(target, arch, objects, dolink = False):
     else:
         # remove source files with local flags setting
         for group in Projects:
-            if 'LOCAL_CCFLAGS' in group or 'LOCAL_CPPPATH' in group or 'LOCAL_CPPDEFINES' in group:
+            if 'LOCAL_CFLAGS' in group or 'LOCAL_CXXFLAGS' in group or 'LOCAL_CCFLAGS' in group or 'LOCAL_CPPPATH' in group or 'LOCAL_CPPDEFINES' in group:
                 for source in group['src']:
                     for obj in objects:
                         if source.abspath == obj.abspath or (len(obj.sources) > 0 and source.abspath == obj.sources[0].abspath):
@@ -901,10 +887,12 @@ def GenTargetProject(program = None):
         from codelite import TargetCodelite
         TargetCodelite(Projects, program)
 
-    if GetOption('target') == 'cmake':
+    if GetOption('target') == 'cmake' or GetOption('target') == 'cmake-armclang':
         from cmake import CMakeProject
         CMakeProject(Env,Projects)
-
+    if GetOption('target') == 'xmake':
+        from xmake import XMakeProject
+        XMakeProject(Env, Projects)
 
 def EndBuilding(target, arch, program = None):
     rtconfig = __import__('rtconfig_' + arch)

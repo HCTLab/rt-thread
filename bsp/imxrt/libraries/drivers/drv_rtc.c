@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006-2018, RT-Thread Development Team
+ * Copyright (c) 2006-2022, RT-Thread Development Team
  *
  * SPDX-License-Identifier: Apache-2.0
  *
@@ -12,7 +12,6 @@
 #include <rtthread.h>
 #include <rtdevice.h>
 #include <sys/time.h>
-
 #ifdef BSP_USING_RTC
 
 #define LOG_TAG             "drv.rtc"
@@ -20,7 +19,7 @@
 
 #include "drv_rtc.h"
 #include "fsl_snvs_hp.h"
-#include <time.h>
+#include <sys/time.h>
 
 #if defined(FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL) && FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL
 #error "Please don't define 'FSL_SDK_DISABLE_DRIVER_CLOCK_CONTROL'!"

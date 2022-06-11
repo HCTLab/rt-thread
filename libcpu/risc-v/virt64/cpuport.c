@@ -9,12 +9,12 @@
  * 2021-02-11     lizhirui     add gp support
  */
 
+#include <stddef.h>
 #include <rthw.h>
 #include <rtthread.h>
 
 #include "cpuport.h"
 #include "stack.h"
-
 
 /**
  * @brief from thread used interrupt context switch
@@ -102,7 +102,7 @@ void rt_hw_context_switch_interrupt(rt_ubase_t from, rt_ubase_t to)
 /** shutdown CPU */
 void rt_hw_cpu_shutdown()
 {
-    rt_uint32_t level;
+    rt_base_t level;
     rt_kprintf("shutdown...\n");
 
     level = rt_hw_interrupt_disable();

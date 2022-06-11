@@ -12,6 +12,7 @@
 #include <rtthread.h>
 #include <rthw.h>
 #include <board.h>
+#include <stddef.h>
 
 #include "cache.h"
 #include "mips_mmu.h"
@@ -802,7 +803,8 @@ void *rt_hw_mmu_v2p(rt_mmu_info *mmu_info, void* v_addr)
 }
 
 #ifdef RT_USING_USERSPACE
-void init_mm_setup(unsigned int *mtbl, unsigned int size, unsigned int pv_off) {
+void init_mm_setup(unsigned int *mtbl, unsigned int size, unsigned int pv_off)
+{
     unsigned int va;
 
     for (va = 0; va < 0x1000; va++) {

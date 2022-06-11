@@ -13,12 +13,16 @@
 #define RT_TICK_PER_SECOND 1000
 #define RT_USING_OVERFLOW_CHECK
 #define RT_USING_HOOK
+#define RT_HOOK_USING_FUNC_PTR
 #define RT_USING_IDLE_HOOK
 #define RT_IDLE_HOOK_LIST_SIZE 4
 #define IDLE_THREAD_STACK_SIZE 2048
 #define RT_USING_TIMER_SOFT
 #define RT_TIMER_THREAD_PRIO 4
 #define RT_TIMER_THREAD_STACK_SIZE 2048
+
+/* kservice optimization */
+
 #define RT_DEBUG
 
 /* Inter-Thread communication */
@@ -33,6 +37,7 @@
 
 #define RT_USING_MEMPOOL
 #define RT_USING_SMALL_MEM
+#define RT_USING_SMALL_MEM_AS_HEAP
 #define RT_USING_HEAP
 
 /* Kernel Device Object */
@@ -41,7 +46,8 @@
 #define RT_USING_CONSOLE
 #define RT_CONSOLEBUF_SIZE 128
 #define RT_CONSOLE_DEVICE_NAME "uart1"
-#define RT_VER_NUM 0x40003
+#define RT_VER_NUM 0x40100
+#define RT_USING_GIC_V2
 #define ARCH_ARMV8
 
 /* RT-Thread Components */
@@ -50,28 +56,21 @@
 #define RT_USING_USER_MAIN
 #define RT_MAIN_THREAD_STACK_SIZE 2048
 #define RT_MAIN_THREAD_PRIORITY 10
-
-/* C++ features */
-
-
-/* Command shell */
-
+#define RT_USING_MSH
 #define RT_USING_FINSH
+#define FINSH_USING_MSH
 #define FINSH_THREAD_NAME "tshell"
+#define FINSH_THREAD_PRIORITY 20
+#define FINSH_THREAD_STACK_SIZE 4096
 #define FINSH_USING_HISTORY
 #define FINSH_HISTORY_LINES 5
 #define FINSH_USING_SYMTAB
-#define FINSH_USING_DESCRIPTION
-#define FINSH_THREAD_PRIORITY 20
-#define FINSH_THREAD_STACK_SIZE 4096
 #define FINSH_CMD_SIZE 80
-#define FINSH_USING_MSH
-#define FINSH_USING_MSH_DEFAULT
+#define MSH_USING_BUILT_IN_COMMANDS
+#define FINSH_USING_DESCRIPTION
 #define FINSH_ARG_MAX 10
-
-/* Device virtual file system */
-
 #define RT_USING_DFS
+#define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
 #define DFS_FILESYSTEMS_MAX 2
 #define DFS_FILESYSTEM_TYPES_MAX 2
@@ -84,20 +83,23 @@
 #define RT_DFS_ELM_WORD_ACCESS
 #define RT_DFS_ELM_USE_LFN_3
 #define RT_DFS_ELM_USE_LFN 3
+#define RT_DFS_ELM_LFN_UNICODE_0
+#define RT_DFS_ELM_LFN_UNICODE 0
 #define RT_DFS_ELM_MAX_LFN 255
 #define RT_DFS_ELM_DRIVES 2
 #define RT_DFS_ELM_MAX_SECTOR_SIZE 512
 #define RT_DFS_ELM_REENTRANT
+#define RT_DFS_ELM_MUTEX_TIMEOUT 3000
 #define RT_USING_DFS_DEVFS
 
 /* Device Drivers */
 
 #define RT_USING_DEVICE_IPC
-#define RT_PIPE_BUFSZ 512
 #define RT_USING_SYSTEM_WORKQUEUE
 #define RT_SYSTEM_WORKQUEUE_STACKSIZE 2048
 #define RT_SYSTEM_WORKQUEUE_PRIORITY 23
 #define RT_USING_SERIAL
+#define RT_USING_SERIAL_V1
 #define RT_SERIAL_USING_DMA
 #define RT_SERIAL_RB_BUFSZ 512
 #define RT_USING_I2C
@@ -116,24 +118,32 @@
 /* Using USB */
 
 
-/* POSIX layer and C standard library */
+/* C/C++ and POSIX layer */
 
-#define RT_USING_LIBC
-#define RT_USING_POSIX
+#define RT_LIBC_DEFAULT_TIMEZONE 8
+
+/* POSIX (Portable Operating System Interface) layer */
+
+#define RT_USING_POSIX_FS
+#define RT_USING_POSIX_POLL
+#define RT_USING_POSIX_SELECT
+#define RT_USING_POSIX_DELAY
+
+/* Interprocess Communication (IPC) */
+
+
+/* Socket is in the 'Network' category */
+
 
 /* Network */
 
-/* Socket abstraction layer */
-
 #define RT_USING_SAL
+#define SAL_INTERNET_CHECK
 
 /* protocol stack implement */
 
 #define SAL_USING_LWIP
 #define SAL_USING_POSIX
-
-/* Network interface device */
-
 #define RT_USING_NETDEV
 #define NETDEV_USING_IFCONFIG
 #define NETDEV_USING_PING
@@ -141,11 +151,9 @@
 #define NETDEV_USING_AUTO_DEFAULT
 #define NETDEV_IPV4 1
 #define NETDEV_IPV6 0
-
-/* light weight TCP/IP stack */
-
 #define RT_USING_LWIP
-#define RT_USING_LWIP202
+#define RT_USING_LWIP203
+#define RT_USING_LWIP_VER_NUM 0x20003
 #define RT_LWIP_MEM_ALIGNMENT 4
 #define RT_LWIP_IGMP
 #define RT_LWIP_ICMP
@@ -156,8 +164,8 @@
 
 /* Static IPv4 Address */
 
-#define RT_LWIP_IPADDR "192.168.1.30"
-#define RT_LWIP_GWADDR "192.168.1.1"
+#define RT_LWIP_IPADDR "192.168.111.172"
+#define RT_LWIP_GWADDR "192.168.111.1"
 #define RT_LWIP_MSKADDR "255.255.255.0"
 #define RT_LWIP_UDP
 #define RT_LWIP_TCP
@@ -186,13 +194,10 @@
 #define LWIP_NETIF_LOOPBACK 0
 #define RT_LWIP_USING_PING
 
-/* AT commands */
-
-
-/* VBUS(Virtual Software BUS) */
-
-
 /* Utilities */
+
+
+/* RT-Thread Utestcases */
 
 
 /* RT-Thread online packages */
@@ -216,14 +221,38 @@
 
 /* language packages */
 
+/* JSON: JavaScript Object Notation, a lightweight data-interchange format */
+
+
+/* XML: Extensible Markup Language */
+
 
 /* multimedia packages */
+
+/* LVGL: powerful and easy-to-use embedded GUI library */
+
+
+/* u8g2: a monochrome graphic library */
+
+
+/* PainterEngine: A cross-platform graphics application framework written in C language */
 
 
 /* tools packages */
 
 
 /* system packages */
+
+/* enhanced kernel services */
+
+
+/* POSIX extension functions */
+
+
+/* acceleration: Assembly language or algorithmic acceleration packages */
+
+
+/* CMSIS: ARM Cortex-M Microcontroller Software Interface Standard */
 
 
 /* Micrium: Micrium software products porting for RT-Thread */
@@ -232,19 +261,17 @@
 /* peripheral libraries and drivers */
 
 
+/* AI packages */
+
+
 /* miscellaneous packages */
 
+/* project laboratory */
 
 /* samples: kernel and components samples */
 
 
-/* games: games run on RT-Thread console */
-
-
-/* Privated Packages of RealThread */
-
-
-/* Network Utilities */
+/* entertainment: terminal games and other interesting software packages */
 
 #define BCM2711_SOC
 

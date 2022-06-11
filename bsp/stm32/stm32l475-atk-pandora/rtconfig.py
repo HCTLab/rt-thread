@@ -22,8 +22,8 @@ elif CROSS_TOOL == 'keil':
     PLATFORM    = 'armcc'
     EXEC_PATH   = r'C:/Keil_v5'
 elif CROSS_TOOL == 'iar':
-    PLATFORM    = 'iar'
-    EXEC_PATH   = r'C:/Program Files (x86)/IAR Systems/Embedded Workbench 8.0'
+    PLATFORM    = 'iccarm'
+    EXEC_PATH   = r'C:/Program Files (x86)/IAR Systems/Embedded Workbench 8.3'
 
 if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
@@ -91,7 +91,6 @@ elif PLATFORM == 'armcc':
 
 
     CXXFLAGS = CFLAGS 
-    CFLAGS += ' -std=c99'
 
     POST_ACTION = 'fromelf --bin $TARGET --output rtthread.bin \nfromelf -z $TARGET'
 
@@ -105,7 +104,7 @@ elif PLATFORM == 'armclang':
     TARGET_EXT = 'axf'
 
     DEVICE = ' --cpu Cortex-M4.fp '
-    CFLAGS = ' -xc -std=c99 --target=arm-arm-none-eabi -mcpu=cortex-m4 '
+    CFLAGS = ' --target=arm-arm-none-eabi -mcpu=cortex-m4 '
     CFLAGS += ' -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 '
     CFLAGS += ' -mfloat-abi=hard -c -fno-rtti -funsigned-char -fshort-enums -fshort-wchar '
     CFLAGS += ' -gdwarf-3 -ffunction-sections '
@@ -125,10 +124,11 @@ elif PLATFORM == 'armclang':
         CFLAGS += ' -O2'
         
     CXXFLAGS = CFLAGS
+    CFLAGS += ' -std=c99'
 
     POST_ACTION = 'fromelf --bin $TARGET --output rtthread.bin \nfromelf -z $TARGET'
 
-elif PLATFORM == 'iar':
+elif PLATFORM == 'iccarm':
     # toolchains
     CC = 'iccarm'
     CXX = 'iccarm'

@@ -6,16 +6,28 @@
  * Change Logs:
  * Date           Author       Notes
  */
-#ifndef __RTT_STATFS_H__
-#define __RTT_STATFS_H__
 
-#include <rtthread.h>
+#ifndef __SYS_STATFS_H__
+#define __SYS_STATFS_H__
+
+#include <stddef.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct statfs
 {
-    rt_size_t f_bsize;   /* block size */
-    rt_size_t f_blocks;  /* total data blocks in file system */
-    rt_size_t f_bfree;   /* free blocks in file system */
+    size_t f_bsize;   /* block size */
+    size_t f_blocks;  /* total data blocks in file system */
+    size_t f_bfree;   /* free blocks in file system */
 };
+
+int statfs(const char *path, struct statfs *buf);
+int fstatfs(int fd, struct statfs *buf);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

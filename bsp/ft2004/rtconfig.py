@@ -11,7 +11,7 @@ if os.getenv('RTT_CC'):
 
 # only support GNU GCC compiler.
 PLATFORM    = 'gcc'
-EXEC_PATH   = '/usr/lib/arm-none-eabi/bin'
+EXEC_PATH   = r'/usr/lib/arm-none-eabi/bin'
 if os.getenv('RTT_EXEC_PATH'):
     EXEC_PATH = os.getenv('RTT_EXEC_PATH')
 
@@ -36,7 +36,7 @@ if PLATFORM == 'gcc':
 
     
     DEVICE = ' -march=armv8-a  -mfpu=vfpv4-d16 -ftree-vectorize -ffast-math -mfloat-abi=soft --specs=nano.specs --specs=nosys.specs -fno-builtin '
-    # DEVICE = ' -march=armv7-a  -mfpu=vfpv3-d16 -ftree-vectorize -ffast-math -mfloat-abi=hard'
+
     CFLAGS = DEVICE + ' -Wall'
     AFLAGS = ' -c'+ DEVICE + ' -fsingle-precision-constant  -fno-builtin -x assembler-with-cpp -D__ASSEMBLY__'    
     LINK_SCRIPT = 'ft_aarch32.lds'
