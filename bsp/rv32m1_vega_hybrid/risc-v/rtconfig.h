@@ -34,6 +34,8 @@
 #define RT_USING_EVENT
 #define RT_USING_MAILBOX
 #define RT_USING_MESSAGEQUEUE
+#define RT_USING_HOOK
+#define RT_HOOK_USING_FUNC_PTR
 
 /* Memory Management */
 
@@ -116,6 +118,9 @@
 
 //#define RT_USING_LIBC  //(JAAS) Defined by command-line
 #define RT_USING_POSIX
+#define RT_USING_POSIX_MESSAGE_SEMAPHORE
+#define RT_USING_POSIX_MESSAGE_QUEUE
+#define RT_USING_POSIX_DELAY
 //#define RT_USING_SIGNALS
 #define RT_USING_PTHREADS
 
