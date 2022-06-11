@@ -214,7 +214,7 @@ rt_smem_t rt_smem_init(const char    *name,
         return RT_NULL;
     }
 
-    if( first_core == 0 )  return;   //(JAAS) Support for hybrid arch
+    if( first_core == 0 )  return NULL;   //(JAAS) Support for hybrid arch
     rt_memset(small_mem, 0, sizeof(*small_mem));
     /* initialize small memory object */
     rt_object_init(&(small_mem->parent.parent), RT_Object_Class_Memory, name);

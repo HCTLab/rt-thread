@@ -114,7 +114,7 @@
 
 /* POSIX layer and C standard library */
 
-#define RT_USING_LIBC
+//#define RT_USING_LIBC  //(JAAS) Defined by command-line
 #define RT_USING_POSIX
 //#define RT_USING_SIGNALS
 #define RT_USING_PTHREADS

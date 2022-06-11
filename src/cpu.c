@@ -149,7 +149,7 @@ RTM_EXPORT(rt_spin_unlock_irqrestore)
  */
 struct rt_cpu *rt_cpu_self(void)
 {
-    return &_cpus[rt_hw_cpu_id()];
+    return &rt_cpus[rt_hw_cpu_id()];
 }
 
 /**
@@ -159,7 +159,7 @@ struct rt_cpu *rt_cpu_self(void)
  */
 struct rt_cpu *rt_cpu_index(int index)
 {
-    return &_cpus[index];
+    return &rt_cpus[index];
 }
 
 /**

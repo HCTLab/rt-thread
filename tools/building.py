@@ -148,37 +148,6 @@ def GenCconfigFile(env, arch, BuildOptions):
                 # add HAVE_CCONFIG_H definition
                 env.AppendUnique(CPPDEFINES = ['HAVE_CCONFIG_H'])
 
-def AddOptions():
-
-    global BuildOptions
-
-    AddOptions()
-
-    # ===== Options got from PrepareBuilding()
-    #if env['PLATFORM'] != 'win32':
-    AddOption('--menuconfig',
-                dest = 'menuconfig',
-                action = 'store_true',
-                default = False,
-                help = 'make menuconfig for RT-Thread BSP')
-    if GetOption('menuconfig'):
-        from menuconfig import menuconfig
-        menuconfig(Rtt_Root)
-        exit(0)
-
-    AddOption('--pyconfig',
-                dest = 'pyconfig',
-                action = 'store_true',
-                default = False,
-                help = 'Python GUI menuconfig for RT-Thread BSP')
-    AddOption('--pyconfig-silent',
-                dest = 'pyconfig_silent',
-                action = 'store_true',
-                default = False,
-                help = 'Don`t show pyconfig window')
-
-    #print("Platform:"+sys.platform)
-
 def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=False, has_components=False, remove_components = []):
     rtconfig = __import__('rtconfig_' + arch)
     # import rtconfig
@@ -187,6 +156,8 @@ def PrepareBuilding(env, root_directory, arch, has_libcpu=False, has_kernel=Fals
     global Projects
     global Env
     global Rtt_Root
+
+    #AddOptions()  #(JAAS) Added from SConstruct (this function will be called several times)
 
     Env = env
     Rtt_Root = os.path.abspath(root_directory)

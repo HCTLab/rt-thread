@@ -1450,7 +1450,7 @@ rt_inline void _slab_info(rt_size_t *total,
  *
  * @param end_addr the end address of system page.
  */
-RT_WEAK void rt_system_heap_init(void *begin_addr, void *end_addr)
+RT_WEAK void rt_system_heap_init(void *begin_addr, void *end_addr, int first_core)  //(JAAS)
 {
     rt_ubase_t begin_align = RT_ALIGN((rt_ubase_t)begin_addr, RT_ALIGN_SIZE);
     rt_ubase_t end_align   = RT_ALIGN_DOWN((rt_ubase_t)end_addr, RT_ALIGN_SIZE);

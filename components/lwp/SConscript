@@ -1,6 +1,7 @@
-Import('rtconfig')
+#Import('rtconfig')  #(JAAS) Exported from each BSP SConstruct
 from building import *
 
+rtconfig = __import__('rtconfig_arm')  #(JAAS) This component is specific for ARM
 cwd     = GetCurrentDir()
 src     = []
 CPPPATH = [cwd]

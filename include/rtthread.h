@@ -292,7 +292,8 @@ void rt_free_sethook(void (*hook)(void *ptr));
  */
 rt_smem_t rt_smem_init(const char    *name,
                      void          *begin_addr,
-                     rt_size_t      size);
+                     rt_size_t      size,
+                     int            first_core);  //(JAAS)
 rt_err_t rt_smem_detach(rt_smem_t m);
 void *rt_smem_alloc(rt_smem_t m, rt_size_t size);
 void *rt_smem_realloc(rt_smem_t m, void *rmem, rt_size_t newsize);
