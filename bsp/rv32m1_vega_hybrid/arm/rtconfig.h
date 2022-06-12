@@ -66,6 +66,7 @@
 /* Command shell */
 
 #define RT_USING_FINSH
+#define MSH_USING_BUILT_IN_COMMANDS
 #define FINSH_THREAD_NAME "tshell"
 #define FINSH_USING_HISTORY
 #define FINSH_HISTORY_LINES 5
@@ -82,11 +83,14 @@
 /* Device virtual file system */
 
 #define RT_USING_DFS
+#define RT_USING_DFS_DEVFS
+#define RT_USING_DFS_ELMFAT
+
+#define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
 #define DFS_FILESYSTEMS_MAX 4
 #define DFS_FILESYSTEM_TYPES_MAX 4
 #define DFS_FD_MAX 16
-//#define RT_USING_DFS_ELMFAT
 
 /* elm-chan's FatFs, Generic FAT Filesystem Module */
 
@@ -98,7 +102,6 @@
 #define RT_DFS_ELM_DRIVES 2
 #define RT_DFS_ELM_MAX_SECTOR_SIZE 512
 #define RT_DFS_ELM_REENTRANT
-#define RT_USING_DFS_DEVFS
 
 /* Device Drivers */
 
@@ -118,9 +121,12 @@
 
 //#define RT_USING_LIBC  //(JAAS) Defined by command-line
 #define RT_USING_POSIX
+#define RT_USING_POSIX_STDIO
+#define RT_USING_POSIX_DEVIO
 #define RT_USING_POSIX_MESSAGE_SEMAPHORE
 #define RT_USING_POSIX_MESSAGE_QUEUE
 #define RT_USING_POSIX_DELAY
+#define RT_USING_POSIX_CLOCK
 //#define RT_USING_SIGNALS
 #define RT_USING_PTHREADS
 
