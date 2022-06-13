@@ -14,6 +14,10 @@ riscv_heap_end                          heap_end
 riscv_pthread_number                    pthread_number
 riscv_pth_table                         pth_table
 riscv_pth_lock_                         pth_lock_
+riscv_posix_sem_list                    posix_sem_list
+riscv_posix_sem_lock                    posix_sem_lock
+riscv_posix_mq_list                     posix_mq_list
+riscv_posix_mq_lock                     posix_mq_lock
 riscv_rt_cpus                           rt_cpus
 riscv__cpus_lock                        _cpus_lock
 riscv_rt_thread_priority_table          rt_thread_priority_table
@@ -24,3 +28,7 @@ riscv_global_read_sem                   global_read_sem
 riscv_global_cipher_sem                 global_cipher_sem
 riscv_global_write_sem                  global_write_sem
 riscv_global_queue                      global_queue
+riscv_filesystem_operation_table        filesystem_operation_table
+riscv_filesystem_table                  filesystem_table
+riscv_fslock                            fslock
+riscv__fdtab                            _fdtab

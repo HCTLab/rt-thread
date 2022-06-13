@@ -12,6 +12,7 @@
 #ifdef RT_USING_DFS
 #include <dfs_fs.h>
 
+// Usually RISC-V architecture will mount DFS
 int mnt_init(void)
 {
     if (dfs_mount("sd0", "/", "elm", 0, 0) == 0)
@@ -24,5 +25,5 @@ int mnt_init(void)
     }
     return 0;
 }
-INIT_ENV_EXPORT(mnt_init);
+//INIT_ENV_EXPORT(mnt_init);  // Manually mounted from main()
 #endif

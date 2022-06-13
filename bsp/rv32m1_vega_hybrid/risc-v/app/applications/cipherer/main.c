@@ -345,8 +345,11 @@ int main( int argc, char **argv )
 {
     pthread_mutexattr_t     mattr;
     pthread_attr_t          attr;
-
-    // Init some subsystems/components
+    
+    // ELM must be init manually (not from components)
+    elm_init();
+    
+    /* Manually init some subsystems/components (usually done by 'rt_components_init()')
     dfs_init();
     elm_init();
     
@@ -354,6 +357,7 @@ int main( int argc, char **argv )
     // Note: Must be called always after dfs_init(), to set allow setting the console as stdio/stderr
     //libc_stdio_set_console(RT_CONSOLE_DEVICE_NAME, O_RDWR);
     libc_system_init();
+    */
     
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
@@ -362,7 +366,6 @@ int main( int argc, char **argv )
     mattr = PTHREAD_MUTEX_RECURSIVE;
     pthread_mutex_init( &global_mutex, &mattr );
     sem_init( &global_read_sem,   1, 1 );  sem_wait( &global_read_sem );
-    sem_init( &global_cipher_sem, 1, 1 );  sem_wait( &global_cipher_sem );
     sem_init( &global_write_sem,  1, 1 );  sem_wait( &global_write_sem );
     memset( global_queue, 0, sizeof(global_queue) );
     

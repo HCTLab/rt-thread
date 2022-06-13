@@ -1389,8 +1389,8 @@ rt_inline void _smem_info(rt_size_t *total,
     if (max_used)
         *max_used = system_heap->max;
 }
-#define _MEM_INIT(_name, _start, _size) \
-    system_heap = rt_smem_init(_name, _start, _size)
+#define _MEM_INIT(_name, _start, _size, _firstcore) \
+    system_heap = rt_smem_init(_name, _start, _size, _firstcore)  //(JAAS)
 #define _MEM_MALLOC(_size)  \
     rt_smem_alloc(system_heap, _size)
 #define _MEM_REALLOC(_ptr, _newsize)\
@@ -1404,8 +1404,8 @@ static struct rt_memheap system_heap;
 void *_memheap_alloc(struct rt_memheap *heap, rt_size_t size);
 void _memheap_free(void *rmem);
 void *_memheap_realloc(struct rt_memheap *heap, void *rmem, rt_size_t newsize);
-#define _MEM_INIT(_name, _start, _size) \
-    rt_memheap_init(&system_heap, _name, _start, _size)
+#define _MEM_INIT(_name, _start, _size, _firstcore) \
+    rt_memheap_init(&system_heap, _name, _start, _size, firstcore)  //(JAAS)
 #define _MEM_MALLOC(_size)  \
     _memheap_alloc(&system_heap, _size)
 #define _MEM_REALLOC(_ptr, _newsize)    \
@@ -1426,8 +1426,8 @@ rt_inline void _slab_info(rt_size_t *total,
     if (max_used)
         *max_used = system_heap->max;
 }
-#define _MEM_INIT(_name, _start, _size) \
-    system_heap = rt_slab_init(_name, _start, _size)
+#define _MEM_INIT(_name, _start, _size, _firstcore) \
+    system_heap = rt_slab_init(_name, _start, _size, firstcore)  //(JAAS)
 #define _MEM_MALLOC(_size)  \
     rt_slab_alloc(system_heap, _size)
 #define _MEM_REALLOC(_ptr, _newsize)    \
@@ -1458,7 +1458,7 @@ RT_WEAK void rt_system_heap_init(void *begin_addr, void *end_addr, int first_cor
     RT_ASSERT(end_align > begin_align);
 
     /* Initialize system memory heap */
-    _MEM_INIT("heap", begin_addr, end_align - begin_align);
+    _MEM_INIT("heap", begin_addr, end_align - begin_align, first_core);  //(JAAS)
     /* Initialize multi thread contention lock */
     _heap_lock_init();
 }

@@ -59,10 +59,16 @@ SECTIONS
     . = ALIGN(4);
 
     /* section information for initial. */
+    /* Note: Only one architecture should initialize RT_INIT section !!!
     . = ALIGN(4);
     arm___rt_init_start = .;
     KEEP(*(SORT(.rti_fn*)))
     arm___rt_init_end = .;
+    . = ALIGN(4);
+    */
+    riscv___rt_init_start = .;
+    KEEP(*(SORT(.rti_fn*)))
+    riscv___rt_init_end = .;
     . = ALIGN(4);
 
     PROVIDE(arm___ctors_start__ = .);
@@ -86,13 +92,6 @@ SECTIONS
     riscv___vsymtab_start = .;
     KEEP(*(VSymTab))
     riscv___vsymtab_end = .;
-    . = ALIGN(4);
-
-    /* section information for initial. */
-    . = ALIGN(4);
-    riscv___rt_init_start = .;
-    KEEP(*(SORT(.rti_fn*)))
-    riscv___rt_init_end = .;
     . = ALIGN(4);
   } > m_text
 

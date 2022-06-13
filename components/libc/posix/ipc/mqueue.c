@@ -15,11 +15,11 @@
 #include <rtthread.h>
 #include "mqueue.h"
 
-static mqd_t posix_mq_list = RT_NULL;
-static struct rt_semaphore posix_mq_lock;
+/*static*/ mqd_t posix_mq_list = RT_NULL;  //(JAAS) Shared resource on hybrid architecture
+/*static*/ struct rt_semaphore posix_mq_lock;  //(JAAS) Shared resource on hybrid architecture
 
 /* initialize posix mqueue */
-static int posix_mq_system_init(void)
+/*static*/ int posix_mq_system_init(void)  //(JAAS) Shared resource on hybrid architecture
 {
     rt_sem_init(&posix_mq_lock, "pmq", 1, RT_IPC_FLAG_FIFO);
     return 0;

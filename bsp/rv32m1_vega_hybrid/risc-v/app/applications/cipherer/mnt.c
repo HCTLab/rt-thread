@@ -18,5 +18,5 @@ int mnt_init(void)
 
     return error;
 }
-INIT_ENV_EXPORT(mnt_init);
+//INIT_ENV_EXPORT(mnt_init);  // Manually mounted from main()
 #endif

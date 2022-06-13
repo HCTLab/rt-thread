@@ -20,11 +20,13 @@
 #define IDLE_THREAD_STACK_SIZE 1024
 
 #define RT_DEBUG
-//#define RT_DEBUG_COLOR
-//#define RT_DEBUG_MEM 1
+#define RT_DEBUG_COLOR
+#define RT_DEBUG_MEM 1
 //#define RT_DEBUG_SCHEDULER 1
 //#define RT_DEBUG_IPC 1
 //#define RT_DEBUG_THREAD 1
+//#define RT_DEBUG_INIT 1
+#define RT_DEBUG_CONTEXT_CHECK 0
 #define RT_DEBUG_ARCH "ARM: "
 
 /* Inter-Thread communication */
@@ -41,6 +43,7 @@
 
 #define RT_USING_MEMPOOL
 #define RT_USING_SMALL_MEM
+#define RT_USING_SMALL_MEM_AS_HEAP
 #define RT_USING_HEAP
 
 /* Kernel Device Object */
@@ -55,8 +58,8 @@
 
 /* RT-Thread Components */
 
-//#define RT_USING_COMPONENTS_INIT
-//#define RT_USING_USER_MAIN
+//#define RT_USING_COMPONENTS_INIT  // Done by RISC-V architecture (RT_INIT functions needs to be called once)
+//#define RT_USING_USER_MAIN  // Done by application
 #define RT_MAIN_THREAD_STACK_SIZE 2048
 #define RT_MAIN_THREAD_PRIORITY 10
 
@@ -88,9 +91,9 @@
 
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FILESYSTEMS_MAX 4
-#define DFS_FILESYSTEM_TYPES_MAX 4
-#define DFS_FD_MAX 16
+#define DFS_FILESYSTEMS_MAX 32
+#define DFS_FILESYSTEM_TYPES_MAX 32
+#define DFS_FD_MAX 64
 
 /* elm-chan's FatFs, Generic FAT Filesystem Module */
 

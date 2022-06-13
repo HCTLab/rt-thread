@@ -27,13 +27,13 @@ const struct dfs_filesystem_ops *filesystem_operation_table[DFS_FILESYSTEM_TYPES
 struct dfs_filesystem filesystem_table[DFS_FILESYSTEMS_MAX];
 
 /* device filesystem lock */
-static struct rt_mutex fslock;
+/*static*/ struct rt_mutex fslock;  //(JAAS) Common hybrid resource. Must be exported.
 
 #ifdef DFS_USING_WORKDIR
 char working_directory[DFS_PATH_MAX] = {"/"};
 #endif
 
-static struct dfs_fdtable _fdtab;
+/*static*/ struct dfs_fdtable _fdtab;  //(JAAS) Common hybrid resource. Must be exported.
 
 /**
  * @addtogroup DFS

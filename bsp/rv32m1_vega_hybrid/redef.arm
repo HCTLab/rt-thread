@@ -9,6 +9,10 @@ arm_heap_end                            heap_end
 arm_pthread_number                      pthread_number
 arm_pth_table                           pth_table
 arm_pth_lock_                           pth_lock_
+arm_posix_sem_list                      posix_sem_list
+arm_posix_sem_lock                      posix_sem_lock
+arm_posix_mq_list                       posix_mq_list
+arm_posix_mq_lock                       posix_mq_lock
 arm_rt_cpus                             rt_cpus
 arm__cpus_lock                          _cpus_lock
 arm_rt_thread_priority_table            rt_thread_priority_table
@@ -19,3 +23,7 @@ arm_global_read_sem                     global_read_sem
 arm_global_cipher_sem                   global_cipher_sem
 arm_global_write_sem                    global_write_sem
 arm_global_queue                        global_queue
+arm_filesystem_operation_table          filesystem_operation_table
+arm_filesystem_table                    filesystem_table
+arm_fslock                              fslock
+arm__fdtab                              _fdtab

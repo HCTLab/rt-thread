@@ -14,11 +14,11 @@
 #include <sys/errno.h>
 #include "semaphore.h"
 
-static sem_t *posix_sem_list = RT_NULL;
-static struct rt_semaphore posix_sem_lock;
+/*static*/ sem_t *posix_sem_list = RT_NULL;  //(JAAS) Shared resource on hybrid architecture
+/*static*/ struct rt_semaphore posix_sem_lock;  //(JAAS) Shared resource on hybrid architecture
 
 /* initialize posix semaphore */
-static int posix_sem_system_init(void)
+/*static*/ int posix_sem_system_init(void)  //(JAAS) Shared resource on hybrid architecture
 {
     rt_sem_init(&posix_sem_lock, "psem", 1, RT_IPC_FLAG_FIFO);
     return 0;

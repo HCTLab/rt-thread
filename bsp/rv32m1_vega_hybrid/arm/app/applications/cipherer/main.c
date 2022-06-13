@@ -236,13 +236,11 @@ int main( int argc, char **argv )
 {
     pthread_attr_t          attr;
 
-    // Configure STDIO stdin/stdout to point to serial port
-    // Note: Must be called always after dfs_init(), to set allow setting the console as stdio/stderr
-    //libc_stdio_set_console(RT_CONSOLE_DEVICE_NAME, O_RDWR);
-    //libc_system_init();
-    
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+
+    // Init shared inter-architecture IPC objects
+    sem_init( &global_cipher_sem, 1, 1 );  sem_wait( &global_cipher_sem );
 
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
