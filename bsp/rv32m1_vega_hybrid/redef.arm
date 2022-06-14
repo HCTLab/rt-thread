@@ -8,7 +8,7 @@ arm_heap_ptr                            heap_ptr
 arm_heap_end                            heap_end
 arm_pthread_number                      pthread_number
 arm_pth_table                           pth_table
-arm_pth_lock_                           pth_lock_
+arm_pth_lock                            pth_lock
 arm_posix_sem_list                      posix_sem_list
 arm_posix_sem_lock                      posix_sem_lock
 arm_posix_mq_list                       posix_mq_list

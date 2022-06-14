@@ -249,7 +249,9 @@ int main( int argc, char **argv )
     attr.schedparam.sched_priority = RT_MAIN_THREAD_PRIORITY;
 
     pthread_create( &cthread, &attr, cipher_thread, NULL );
+    //list_thread();
     pthread_join( cthread, NULL );
+
     printf( "\n%s Main thread finished!\n", RT_DEBUG_ARCH );
 
     return 0;

@@ -371,6 +371,7 @@ int main( int argc, char **argv )
 
     pthread_create( &rdthread, &attr, sdcard_reader_thread, SDCARD_PLAIN_FILE );
     pthread_create( &wrthread, &attr, sdcard_writer_thread, SDCARD_CIPHER_FILE );
+    //list_thread();
     pthread_join( rdthread, NULL );
     pthread_join( wrthread, NULL );
    

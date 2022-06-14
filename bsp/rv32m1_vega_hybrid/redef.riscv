@@ -13,7 +13,7 @@ riscv_heap_ptr                          heap_ptr
 riscv_heap_end                          heap_end
 riscv_pthread_number                    pthread_number
 riscv_pth_table                         pth_table
-riscv_pth_lock_                         pth_lock_
+riscv_pth_lock                          pth_lock
 riscv_posix_sem_list                    posix_sem_list
 riscv_posix_sem_lock                    posix_sem_lock
 riscv_posix_mq_list                     posix_mq_list

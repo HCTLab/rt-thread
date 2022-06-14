@@ -788,6 +788,11 @@ int finsh_system_init(void)
                             FINSH_THREAD_PRIORITY, 10);
 #endif /* RT_USING_HEAP */
 
+#ifdef RT_USING_SMP
+    //(JAAS) Bind new pthread to a CPU of a specific arch
+    rt_thread_control(tid, RT_THREAD_CTRL_BIND_CPU, (void *)rt_hw_cpu_id());
+#endif /* RT_USING_SMP */
+
     rt_sem_init(&(shell->rx_sem), "shrx", 0, 0);
     finsh_set_prompt_mode(1);
 

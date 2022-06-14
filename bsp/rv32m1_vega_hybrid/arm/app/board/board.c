@@ -29,20 +29,16 @@
 #define APP_MU_IRQ               MUB_IRQn
 #define APP_SEMA42               SEMA420
 #define BOOT_FLAG                0x01U
+#define MAX_GATES                16
 
-
-/*******************************************************************************
- * Variables
- ******************************************************************************/
-
-/*******************************************************************************
- * Code
- ******************************************************************************/
 
 #ifdef RT_USING_SMP
 
+void rt_hw_object_delete(struct rt_object *object);
+void rt_hw_object_trytake( struct rt_object *object );
 void rt_hw_object_take(struct rt_object *object);
 void rt_hw_object_put(struct rt_object *object);
+void rt_hw_object_dump(void);
 
 int rt_hw_cpu_id( void )
 {
@@ -211,19 +207,33 @@ void rt_hw_us_delay( rt_uint32_t us )
 
 //#define HYBRID_DEBUG
 #define HYBRID_DEBUG_MIN_GATE       2
-#define OBJ_APP_SEMA42              SEMA420     // HW instance
-#define OBJ_LOCK_CORE               1U          // Core 0 (ARM) locking identifier
+#define OBJ_APP_SEMA42              SEMA420         // HW instance
+#define OBJ_LOCK_CORE               1U              // Core 0 (ARM) locking identifier
 
-extern struct rt_object *rt_hw_gate[16];        // Assigned gates to objects
+extern struct rt_object *rt_hw_gate[MAX_GATES+1];     // Assigned gates to objects
+
+void rt_hw_object_delete( struct rt_object *object )
+{
+    int  g;
+
+    for( g=1; g<MAX_GATES; g++ ) 
+    {
+        if( object == rt_hw_gate[g] )
+        {
+            rt_hw_gate[g] = NULL;
+            break;  // Reuse gate when same object
+        } //endif
+    } //endfor
+}
 
 void rt_hw_object_trytake( struct rt_object *object )
 {
     int  g;
     return;  // Trytake is disabled by now
 
-    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
-    if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
-    if( g < 16 )
+    for( g=1; g<MAX_GATES; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
+    if( g == MAX_GATES ) for( g=1; g<MAX_GATES; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
+    if( g < MAX_GATES )
     {
         rt_hw_gate[g] = object;
 #ifdef HYBRID_DEBUG
@@ -243,9 +253,9 @@ void rt_hw_object_take( struct rt_object *object )
 {
     int  g;
 
-    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
-    if( g == 16 ) for( g=1; g<16; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
-    if( g < 16 )
+    for( g=1; g<MAX_GATES; g++ ) if( object == rt_hw_gate[g] ) break;  // Reuse gate when same object
+    if( g == MAX_GATES ) for( g=1; g<MAX_GATES; g++ ) if( rt_hw_gate[g] == NULL ) break;  // Get a new gate if not found
+    if( g < MAX_GATES )
     {
         rt_hw_gate[g] = object;
 #ifdef HYBRID_DEBUG
@@ -257,7 +267,8 @@ void rt_hw_object_take( struct rt_object *object )
     }
     else
     {
-        rt_kprintf("%s Locking GATE error [%p=no more gates]\n", RT_DEBUG_ARCH, object);
+        rt_kprintf("%s Locking GATE error [no more gates] Addr [%p] Name [%08X]\n", RT_DEBUG_ARCH, object, object->name);
+        //rt_hw_object_dump();  //(JAAS) Simple way to find new semaphores/mutexes
     }
 }
 
@@ -265,8 +276,8 @@ void rt_hw_object_put( struct rt_object *object )
 {
     int  g;
 
-    for( g=1; g<16; g++ ) if( object == rt_hw_gate[g] ) break;  // Search object's gate
-    if( g < 16 )
+    for( g=1; g<MAX_GATES; g++ ) if( object == rt_hw_gate[g] ) break;  // Search object's gate
+    if( g < MAX_GATES )
     {
         SEMA42_Unlock( OBJ_APP_SEMA42, g );
 #ifdef HYBRID_DEBUG
@@ -279,6 +290,27 @@ void rt_hw_object_put( struct rt_object *object )
     {
         rt_kprintf("%s Unlocked GATE [%p=no gate found]\n", RT_DEBUG_ARCH, object, g);
     }
+}
+
+void rt_hw_object_dump(void)
+{
+    struct rt_object  *object;
+    int                g;
+    static int         triggered = 0;
+    
+    if( triggered == 0 )
+    {
+        triggered = 1;  // Avoid mixing messages
+        rt_kprintf("\n\%s objects:\n", RT_DEBUG_ARCH);
+        for( g=1; g<MAX_GATES; g++ )
+        {
+            object = (struct rt_object *) rt_hw_gate[g];
+            if( object != NULL )
+            {
+                rt_kprintf("[%02d] Addr [%08X] Name [%s]\n", g, object, object->name);
+            } //endif
+        } //endof
+    } //endif
 }
 
 void rt_hw_board_init( void )
@@ -303,6 +335,7 @@ void rt_hw_board_init( void )
     rt_object_trytake_sethook( rt_hw_object_trytake );
     rt_object_take_sethook( rt_hw_object_take );
     rt_object_put_sethook( rt_hw_object_put );
+    rt_object_detach_sethook( rt_hw_object_delete );
 
     // Initialize hardware interrupt
     rt_system_scheduler_init();  // Scheduler will be init later on rtthread_startup(), but rt_hw_uart_init() requires some scheduler structure to be init!
