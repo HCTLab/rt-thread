@@ -1,4 +1,5 @@
 arm___heap_start                        __heap_start
+arm__lock                               _lock
 arm_rt_hw_gate                          rt_hw_gate
 arm_lfree                               lfree
 arm_used_mem                            used_mem

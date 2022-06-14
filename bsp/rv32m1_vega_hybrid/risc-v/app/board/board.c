@@ -447,8 +447,8 @@ void rt_hw_object_take( struct rt_object *object )
     }
     else
     {
-        rt_kprintf("%s Locking GATE error [no more gates] Addr [%p] Name [%08X]\n", RT_DEBUG_ARCH, object, object->name);
-        //rt_hw_object_dump();  //(JAAS) Simple way to find new semaphores/mutexes
+        rt_kprintf("%s Locking GATE error [no more gates] Addr [%p] Name [%s]\n", RT_DEBUG_ARCH, object, object->name);
+        rt_hw_object_dump();  //(JAAS) Simple way to find new semaphores/mutexes
     }
 }
 
@@ -468,7 +468,9 @@ void rt_hw_object_put( struct rt_object *object )
     }
     else
     {
+#ifdef HYBRID_DEBUG
         rt_kprintf("%s Unlocked GATE [%p=no gate found]\n", RT_DEBUG_ARCH, object, g);
+#endif
     }
 }
 

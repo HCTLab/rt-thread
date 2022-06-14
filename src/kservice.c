@@ -1338,7 +1338,7 @@ void rt_free_sethook(void (*hook)(void *ptr))
 
 #if defined(RT_USING_HEAP_ISR)
 #elif defined(RT_USING_MUTEX)
-static struct rt_mutex _lock;
+/*static*/ struct rt_mutex _lock;  //(JAAS) HEAP mutex is non-static on hybrid architectures
 #endif
 
 rt_inline void _heap_lock_init(void)
