@@ -346,19 +346,6 @@ int main( int argc, char **argv )
     pthread_mutexattr_t     mattr;
     pthread_attr_t          attr;
     
-    // ELM must be init manually (not from components)
-    elm_init();
-    
-    /* Manually init some subsystems/components (usually done by 'rt_components_init()')
-    dfs_init();
-    elm_init();
-    
-    // Configure STDIO stdin/stdout to point to serial port
-    // Note: Must be called always after dfs_init(), to set allow setting the console as stdio/stderr
-    //libc_stdio_set_console(RT_CONSOLE_DEVICE_NAME, O_RDWR);
-    libc_system_init();
-    */
-    
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
     

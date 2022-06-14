@@ -27,3 +27,4 @@ arm_filesystem_operation_table          filesystem_operation_table
 arm_filesystem_table                    filesystem_table
 arm_fslock                              fslock
 arm__fdtab                              _fdtab
+arm_elm_init                            elm_init

@@ -20,8 +20,8 @@
 #define IDLE_THREAD_STACK_SIZE 1024
 
 #define RT_DEBUG
-#define RT_DEBUG_COLOR
-#define RT_DEBUG_MEM 1
+//#define RT_DEBUG_COLOR
+//#define RT_DEBUG_MEM 1
 //#define RT_DEBUG_SCHEDULER 1
 //#define RT_DEBUG_IPC 1
 //#define RT_DEBUG_THREAD 1
@@ -91,8 +91,8 @@
 
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FILESYSTEMS_MAX 32
-#define DFS_FILESYSTEM_TYPES_MAX 32
+#define DFS_FILESYSTEMS_MAX 4
+#define DFS_FILESYSTEM_TYPES_MAX 4
 #define DFS_FD_MAX 64
 
 /* elm-chan's FatFs, Generic FAT Filesystem Module */

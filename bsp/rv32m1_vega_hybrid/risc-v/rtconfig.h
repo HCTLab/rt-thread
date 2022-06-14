@@ -91,8 +91,8 @@
 
 #define DFS_USING_POSIX
 #define DFS_USING_WORKDIR
-#define DFS_FILESYSTEMS_MAX 32
-#define DFS_FILESYSTEM_TYPES_MAX 32
+#define DFS_FILESYSTEMS_MAX 4
+#define DFS_FILESYSTEM_TYPES_MAX 4
 #define DFS_FD_MAX 64
 
 /* elm-chan's FatFs, Generic FAT Filesystem Module */

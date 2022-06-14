@@ -32,3 +32,4 @@ riscv_filesystem_operation_table        filesystem_operation_table
 riscv_filesystem_table                  filesystem_table
 riscv_fslock                            fslock
 riscv__fdtab                            _fdtab
+riscv_elm_init                          elm_init

@@ -14,7 +14,10 @@
 
 int mnt_init(void)
 {
-    int error = dfs_mount("sd0", "/", "elm", 0, 0);
+    int error;
+
+    disk_initialize(0);  // Just to avoid 'elm_init()' function being removed by linker (nobody calls it)
+    error = dfs_mount("sd0", "/", "elm", 0, 0);
 
     return error;
 }

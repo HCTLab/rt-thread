@@ -344,6 +344,10 @@ void rt_thread_idle_init(void)
             sizeof(rt_system_stack),
             RT_THREAD_PRIORITY_MAX - 2,
             32);
+
+    //(JAAS) Bind system thread to CPUs of a specific arch
+    rt_thread_control(&rt_system_thread, RT_THREAD_CTRL_BIND_CPU, (void *)rt_hw_cpu_id());
+
     /* startup */
     rt_thread_startup(&rt_system_thread);
 #endif
