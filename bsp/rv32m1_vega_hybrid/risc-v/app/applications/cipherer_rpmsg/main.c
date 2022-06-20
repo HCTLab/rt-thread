@@ -21,6 +21,11 @@
 #include <pthread.h>
 #include <semaphore.h>
 
+#include "board.h"
+#include "rpmsg_lite.h"
+#include "rpmsg_queue.h"
+#include "rpmsg_ns.h"
+
 // Files in SDCARD to be read/writen
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
@@ -35,6 +40,12 @@
 #define  TIME_MEDIUM            1
 #define  TIME_MAX               2
 #define  TIME_TYPES             3
+
+#define  REMOTE_DEFAULT_EPT    (TC_REMOTE_EPT_ADDR)
+
+#define  TC_LOCAL_EPT_ADDR     (30)
+#define  TC_REMOTE_EPT_ADDR    (40)
+#define  TASK_STACK_SIZE        300
 
 // External non-declared functions/variables
 extern long  rt_hw_usec_get(void);
@@ -59,6 +70,12 @@ static long                     time_start;
 static long                     time_full [ TEST_NUM ];
 static long                     time_read [ TEST_NUM ][ TIME_TYPES ];
 static long                     time_write[ TEST_NUM ][ TIME_TYPES ];
+
+// RPMSG_LITE objects
+void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
+struct rpmsg_lite_endpoint     *ctrl_ept;
+rpmsg_queue_handle              ctrl_q;
+struct rpmsg_lite_instance     *my_rpmsg = NULL;
 
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
 pthread_mutex_t                 global_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -343,6 +360,12 @@ int main( int argc, char **argv )
     
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+    
+    // Init RPMSG_LITE OpenAMP env
+    env_init();
+    my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
+    ctrl_q   = rpmsg_queue_create( my_rpmsg );
+    ctrl_ept = rpmsg_lite_create_ept( my_rpmsg, TC_LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, ctrl_q );
     
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;

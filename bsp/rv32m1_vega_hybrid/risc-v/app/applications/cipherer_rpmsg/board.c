@@ -290,41 +290,6 @@ void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
 {
 }
 
-#define MU_ISR_FLAG_BASE    (20)
-#define MU_ISR_COUNT        (12)
-
-void MUA_IRQHandler(void)
-{
-    uint32_t flags;
-    int i;
-
-    flags = MU_GetStatusFlags( APP_MU );
-    
-#if (defined(FSL_FEATURE_MU_HAS_RESET_INT) && FSL_FEATURE_MU_HAS_RESET_INT)
-    /* The other core reset assert interrupt pending */
-    if( flags & kMU_ResetAssertInterruptFlag )
-    {
-        MU_ClearStatusFlags( APP_MU, kMU_ResetAssertInterruptFlag );
-        return;
-    } //endif
-#endif
-
-    for( i=MU_ISR_FLAG_BASE; i<(MU_ISR_FLAG_BASE+MU_ISR_COUNT); i++ )
-    {
-        if( flags & (1 << i) )
-        {
-            MU_ClearStatusFlags( APP_MU, (1 << i) );
-
-            if( flags & kMU_GenInt0Flag )
-            {
-                // General MU interrupt 0 is used to allow hybrid to be preemptive
-                // Other core has re-scheduled tasks on this core!
-                rt_scheduler_ipi_handler( flags, NULL );
-            } //endif
-        } //endif
-    } //endfor
-}
-
 void rt_hw_secondary_cpu_up(void)
 {
 }

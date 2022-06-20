@@ -29,6 +29,9 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include <fcntl.h>      // Provided by RT-THREAD
+#include <semaphore.h>  // Provided by RT-THREAD
+#include <mqueue.h>     // Provided by RT-THREAD
 
 static int env_init_counter = 0;
 
@@ -239,10 +242,12 @@ void *env_map_patova(unsigned long address)
  */
 int env_create_mutex(void **lock, int count)
 {
-    /* make the mutex pointer point to itself
-     * this marks the mutex handle as initialized.
-     */
-    *lock = lock;
+    sem_t *_sem;
+    
+    _sem = malloc( sizeof(sem_t) );
+    sem_init( _sem, 0, count );
+    *lock = _sem;
+    
     return 0;
 }
 
@@ -254,6 +259,8 @@ int env_create_mutex(void **lock, int count)
  */
 void env_delete_mutex(void *lock)
 {
+    sem_destroy( (sem_t *) lock );
+    free( lock );
 }
 
 /*!
@@ -264,8 +271,7 @@ void env_delete_mutex(void *lock)
  */
 void env_lock_mutex(void *lock)
 {
-    /* No mutex needed for RPMsg-Lite in BM environment,
-     * since the API is not shared with ISR context. */
+    sem_wait( (sem_t *) lock );
 }
 
 /*!
@@ -275,8 +281,7 @@ void env_lock_mutex(void *lock)
  */
 void env_unlock_mutex(void *lock)
 {
-    /* No mutex needed for RPMsg-Lite in BM environment,
-     * since the API is not shared with ISR context. */
+    sem_post( (sem_t *) lock );
 }
 
 /*!
@@ -389,4 +394,73 @@ void env_isr(int vector)
         info = &isr_table[vector];
         virtqueue_notification((struct virtqueue *)info->data);
     }
+}
+
+/*
+ * env_create_queue
+ *
+ * Creates a message queue.
+ *
+ * @param queue -  pointer to created queue
+ * @param length -  maximum number of elements in the queue
+ * @param item_size - queue element size in bytes
+ *
+ * @return - status of function execution
+ */
+int env_create_queue(void **queue, int length, int element_size)
+{
+    mqd_t           _queue;
+    struct mq_attr  _attr = { 0, element_size, element_size, 0 };
+    
+    _queue = mq_open( "rpmsg_lite", O_CREAT, 0, &_attr );
+    *queue = (void *) _queue;
+    
+    return 0;
+}
+
+/*!
+ * env_delete_queue
+ *
+ * Deletes the message queue.
+ *
+ * @param queue - queue to delete
+ */
+
+void env_delete_queue(void *queue)
+{
+    mq_close( (mqd_t) queue );
+}
+
+/*!
+ * env_put_queue
+ *
+ * Put an element in a queue.
+ *
+ * @param queue - queue to put element in
+ * @param msg - pointer to the message to be put into the queue
+ * @param timeout_ms - timeout in ms
+ *
+ * @return - status of function execution
+ */
+
+int env_put_queue(void *queue, void *msg, int timeout_ms)
+{
+    return  mq_send( (mqd_t) queue, msg, 10, 0 );
+}
+
+/*!
+ * env_get_queue
+ *
+ * Get an element out of a queue.
+ *
+ * @param queue - queue to get element from
+ * @param msg - pointer to a memory to save the message
+ * @param timeout_ms - timeout in ms
+ *
+ * @return - status of function execution
+ */
+
+int env_get_queue(void *queue, void *msg, int timeout_ms)
+{
+    return  mq_receive( (mqd_t) queue, msg, 10, 0 );
 }

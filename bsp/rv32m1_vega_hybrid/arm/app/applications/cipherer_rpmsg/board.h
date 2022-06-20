@@ -20,8 +20,9 @@
 
 extern unsigned char __heap_start;
 
-#define RT_HW_HEAP_BEGIN    (void*)&__heap_start
-#define RT_HW_HEAP_END      (void*)(0x20000000 + 0x00030000 - 0x1800)
+#define RT_HW_HEAP_BEGIN            (void*)(0x20018000)
+#define RT_HW_HEAP_END              (void*)(0x20020000)
+#define BOARD_SHARED_MEMORY_BASE    (void*)(0x20020000)
 
 /* Definitions for eRPC MU transport layer */
 #if defined(FSL_FEATURE_MU_SIDE_A)

@@ -11,4 +11,5 @@
 #ifndef _RPMSG_CONFIG_H
 #define _RPMSG_CONFIG_H
 
+
 #endif /* _RPMSG_CONFIG_H */

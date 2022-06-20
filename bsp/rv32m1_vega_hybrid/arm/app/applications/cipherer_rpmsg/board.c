@@ -188,7 +188,7 @@ void rt_hw_board_init( void )
     
 #ifdef RT_USING_HEAP
     //rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 0 );  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
-    rt_system_heap_init( RT_HW_HEAP_BEGIN+0x4000, RT_HW_HEAP_END+0x4000, 1 );  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
+    rt_system_heap_init( RT_HW_HEAP_BEGIN, RT_HW_HEAP_END, 1 );  // 0=Do not init lowest block ptr (must be done ONLY by starter core)
 #endif
 
 #ifdef RT_USING_CONSOLE
@@ -200,4 +200,9 @@ void rt_hw_board_init( void )
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
 #endif
+
+    // Since components are not init on ARM arch, it must be done manually
+    posix_mq_system_init();
+    posix_sem_system_init();
+    libc_system_init();
 }
