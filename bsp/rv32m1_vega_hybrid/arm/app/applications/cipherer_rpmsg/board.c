@@ -109,7 +109,7 @@ int rt_hw_systick_init( void )
 
 long rt_hw_usec_get(void)
 {
-    register long       usec;
+    register long       usec = 0L;
     register uint32_t   count1, count2;
     //static   long       last_usec  = 0;
     //register uint32_t   last_count = 0x0FFFFFFF;
@@ -118,10 +118,13 @@ long rt_hw_usec_get(void)
     // Note: Use the same time base for all cores (==LPIT0)
     // Note: Read channel 0 for SYSTEM TICK counter, please refer to system_RV32M1_xxx.c
     count1 = LPIT_GetCurrentTimerCount( LPIT0, 0 );
+
+#ifdef RT_USING_SMP    
     usec   = (long) rt_cpu_index(0)->tick;
     count2 = LPIT_GetCurrentTimerCount( LPIT0, 0 );
     if( count2 > count1 ) { usec = (long) rt_cpu_index(0)->tick; count1 = count2; }
     usec   = usec * (1000000L/RT_TICK_PER_SECOND);
+#endif
 
     /* Timer integrity tests -> They should never trigger
     if( count1 > tick_max_count )  // Usually TVAL=0x752FF for 10ms@40Mhz
@@ -198,10 +201,13 @@ void rt_hw_board_init( void )
 
 #ifdef RT_USING_COMPONENTS_INIT
     rt_components_board_init();
-#endif
-
+#else
     // Since components are not init on ARM arch, it must be done manually
-    posix_mq_system_init();
-    posix_sem_system_init();
+    //ulog_init();
+    dfs_init();
+    ulog_console_backend_init();
     libc_system_init();
+    posix_sem_system_init();
+    posix_mq_system_init();
+#endif
 }

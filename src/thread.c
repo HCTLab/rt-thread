@@ -324,10 +324,14 @@ rt_thread_t rt_thread_self(void)
 #ifdef RT_USING_SMP
     rt_base_t lock;
     rt_thread_t self;
+    static struct rt_thread rt_onboot_thread = {0};
 
     lock = rt_hw_local_irq_disable();
     self = rt_cpu_self()->current_thread;
     rt_hw_local_irq_enable(lock);
+    
+    //(JAAS) For some archs, before first schedule, self is NULL
+    if( self == NULL ) self = &rt_onboot_thread;
     return self;
 #else
     extern rt_thread_t rt_current_thread;
