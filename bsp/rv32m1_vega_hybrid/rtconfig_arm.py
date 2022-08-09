@@ -10,6 +10,16 @@ CPU         ='cortex-m0plus'
 USE_CORE    ='CORE_M0'
 #USE_CORE    ='CORE_M4'
 
+if os.getenv('REDEF'):
+    REDEF = os.getenv('REDEF')
+else:
+    REDEF = 'yes'
+
+if  REDEF == 'yes':
+    REDEF_FILE = 'redef.arm'
+else:
+    REDEF_FILE = 'no_redef.arm'
+    
 if os.getenv('RTT_CC'):
     CROSS_TOOL = os.getenv('RTT_CC')
 
@@ -77,7 +87,7 @@ POST_ACTION = 'cd ' + OBJ_PATH + ' && ' + \
               'cp ' + STD_LIB_PATH + '/libnosys.a . && ' + \
               'cd ../..  && ' + \
               OBJCPY + ' --prefix-symbols arm_ $TARGET && ' + \
-              OBJCPY + ' --redefine-syms=redef.arm $TARGET && ' + \
+              OBJCPY + ' --redefine-syms=' + REDEF_FILE + ' $TARGET && ' + \
               AR + ' d ' + OBJ_PATH + '/libc.a lib_a-writer.o lib_a-sbrkr.o lib_a-mallocr.o lib_a-freer.o lib_a-reallocr.o lib_a-openr.o lib_a-lseekr.o lib_a-readr.o && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libgcc.a && ' + \
               OBJCPY + ' --prefix-symbols arm_ ' + OBJ_PATH + '/libc.a && ' + \

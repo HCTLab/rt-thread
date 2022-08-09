@@ -50,6 +50,7 @@
 // External non-declared functions/variables
 extern long  rt_hw_usec_get(void);
 extern int   mnt_init(void);
+extern int   platform_init(void);
 
 // Define types
 typedef struct
@@ -362,7 +363,8 @@ int main( int argc, char **argv )
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
     
     // Init RPMSG_LITE OpenAMP env
-    env_init();
+    platform_init();
+    //env_init();  // Called from 'rpmsg_lite_remote_init()'
     my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
     ctrl_q   = rpmsg_queue_create( my_rpmsg );
     ctrl_ept = rpmsg_lite_create_ept( my_rpmsg, TC_LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, ctrl_q );

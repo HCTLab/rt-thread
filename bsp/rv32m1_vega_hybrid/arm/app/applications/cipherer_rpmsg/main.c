@@ -70,13 +70,13 @@ rpmsg_queue_handle              ctrl_q;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
 
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
-extern pthread_mutex_t          global_mutex;
+pthread_mutex_t                 global_mutex;
 
-extern sem_t                    global_read_sem;
-extern sem_t                    global_cipher_sem;
-extern sem_t                    global_write_sem;
+sem_t                           global_read_sem;
+sem_t                           global_cipher_sem;
+sem_t                           global_write_sem;
 
-extern block_t                  global_queue[ NUM_BLOCKS ];
+block_t                         global_queue[ NUM_BLOCKS ];
 
 // Cipherer algorithm
 typedef  unsigned int  ub4;
@@ -252,7 +252,8 @@ int main( int argc, char **argv )
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
 
     // Init RPMSG_LITE OpenAMP env
-    env_init();
+    platform_init();
+    //env_init();  // Called from 'rpmsg_lite_remote_init()'
     my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
     ctrl_q   = rpmsg_queue_create( my_rpmsg );
     ctrl_ept = rpmsg_lite_create_ept( my_rpmsg, TC_LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, ctrl_q );

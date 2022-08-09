@@ -230,6 +230,10 @@ SECTIONS
 
   . = ALIGN(0x100);
   __heap_start = .;
+  
+  /* In case of different heaps, ARM will be located at the end */
+  . += 0x8000;
+  arm___heap_start = .;
 
   /* Stabs debugging sections.  */
   .stab          0 : { *(.stab) }
