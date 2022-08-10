@@ -31,21 +31,22 @@
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
 //#define TRACE_LOOP
-#define  TEST_NUM               2
-#define  NUM_BLOCKS             1
-//#define  NUM_BLOCKS             8
-#define  BLOCK_SIZE            (16*1048)
+#define  TEST_NUM                   2
+#define  NUM_BLOCKS                 1
+//#define  NUM_BLOCKS                 8
+#define  BLOCK_SIZE                (16*1048)
 
-#define  TIME_MIN               0
-#define  TIME_MEDIUM            1
-#define  TIME_MAX               2
-#define  TIME_TYPES             3
+#define  TIME_MIN                   0
+#define  TIME_MEDIUM                1
+#define  TIME_MAX                   2
+#define  TIME_TYPES                 3
 
-#define  REMOTE_DEFAULT_EPT    (TC_REMOTE_EPT_ADDR)
-
-#define  TC_LOCAL_EPT_ADDR     (30)
-#define  TC_REMOTE_EPT_ADDR    (40)
-#define  TASK_STACK_SIZE        300
+#define  LOCAL_EPT_CIPHER_ADDR      30
+#define  LOCAL_EPT_READ_ADDR        31
+#define  LOCAL_EPT_WRITE_ADDR       32
+#define  REMOTE_EPT_CIPHER_ADDR     40
+#define  REMOTE_EPT_READ_ADDR       41
+#define  REMOTE_EPT_WRITE_ADDR      42
 
 // External non-declared functions/variables
 extern long  rt_hw_usec_get(void);
@@ -74,18 +75,17 @@ static long                     time_write[ TEST_NUM ][ TIME_TYPES ];
 
 // RPMSG_LITE objects
 void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
-struct rpmsg_lite_endpoint     *ctrl_ept;
-rpmsg_queue_handle              ctrl_q;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
+struct rpmsg_lite_endpoint     *cipher_ept;
+rpmsg_queue_handle              cipher_q;
+struct rpmsg_lite_endpoint     *read_ept;
+rpmsg_queue_handle              read_q;
+struct rpmsg_lite_endpoint     *write_ept;
+rpmsg_queue_handle              write_q;
 
-// Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
-pthread_mutex_t                 global_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-sem_t                           global_read_sem;
-sem_t                           global_cipher_sem;
-sem_t                           global_write_sem;
-
-block_t                         global_queue[ NUM_BLOCKS ];
+// Local architecture MUTEX and queue
+pthread_mutex_t                 local_mutex = PTHREAD_MUTEX_INITIALIZER;
+block_t                         local_queue[ NUM_BLOCKS ];
 
 
 static void *sdcard_reader_thread( void *parameter )
@@ -95,7 +95,10 @@ static void *sdcard_reader_thread( void *parameter )
     FILE           *file;
     int             test, blk, tim, num, idx, len, first_block, i;
     long            time_ini, time_end, time_op;
-
+    block_t        *block;
+    int             recved;
+    unsigned long   src;
+    
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     
     /* Verify rt_hw_usec_get() is returning good values (and there is no tick overflow)
@@ -139,7 +142,9 @@ static void *sdcard_reader_thread( void *parameter )
 #ifdef TRACE_LOOP
             printf("%s Waiting for a new block to be read [%d]\n", RT_DEBUG_ARCH, blk);
 #endif
-            sem_wait( &global_read_sem );
+            //sem_wait( &global_read_sem );  // POSIX IPC mech to be compared
+            recved = 0;
+            rpmsg_queue_recv_nocopy( my_rpmsg, read_q, &src, (void *) &block, &recved, RL_BLOCK );
             
             // On first block do some specific tasks
             if( first_block != 0 )
@@ -158,14 +163,10 @@ static void *sdcard_reader_thread( void *parameter )
             } //endif
             
             // Do internal checks (detect concurrent block usage)
-            pthread_mutex_lock( &global_mutex );
-            if( (global_queue[idx].is_read != 0) || (global_queue[idx].is_ciphered != 0) )
-            {
-                printf("%s Internal error while reading file...\n", RT_DEBUG_ARCH);
-                return NULL;
-            } //endif
-            global_queue[idx].block = data;
-            pthread_mutex_unlock( &global_mutex );
+            pthread_mutex_lock( &local_mutex );
+            memset( &local_queue[idx], 0, sizeof(local_queue[idx]) );
+            local_queue[idx].block = data;
+            pthread_mutex_unlock( &local_mutex );
             
             // Read a block from file
 #ifdef TRACE_LOOP
@@ -192,16 +193,18 @@ static void *sdcard_reader_thread( void *parameter )
 #ifdef TRACE_LOOP
             printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, blk);
 #endif
-            pthread_mutex_lock( &global_mutex );
-            global_queue[idx].is_read = 1;
+            pthread_mutex_lock( &local_mutex );
+            local_queue[idx].is_read = 1;
             if( (len != BLOCK_SIZE) || feof(file) )
             {
-                global_queue[idx].is_last = 1;
+                local_queue[idx].is_last = 1;
             } //endif
-            pthread_mutex_unlock( &global_mutex );
+            pthread_mutex_unlock( &local_mutex );
             
             // Notify cipherer thread (awake it!) that a block is ready to be ciphered
-            sem_post( &global_cipher_sem );
+            //sem_post( &global_cipher_sem );  // POSIX IPC mech to be compared
+            src = 0;
+            rpmsg_lite_send_nocopy( my_rpmsg, cipher_ept, src, (void *) &local_queue[idx], sizeof(block_t *) );
             
             // Increase index
             idx = (idx + 1) % NUM_BLOCKS;
@@ -218,7 +221,9 @@ static void *sdcard_reader_thread( void *parameter )
         // Get all reader slots, till they will post on next test (to sync all thread when starting a new test)
         for( i=0; i<NUM_BLOCKS; i++ )
         {
-            sem_wait( &global_read_sem );
+            //sem_wait( &global_read_sem );
+            recved = 0;
+            rpmsg_queue_recv_nocopy( my_rpmsg, read_q, &src, (void *) &local_queue[idx], &recved, RL_BLOCK );
         } //endfor
     } //endfor
         
@@ -234,6 +239,9 @@ static void *sdcard_writer_thread( void *parameter )
     FILE           *file;
     int             test, blk, tim, num, idx, len, end;
     long            time_ini, time_end, time_op;
+    block_t        *block;
+    int             recved;
+    unsigned long   src;
 
     printf("%s SDCARD writer thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     
@@ -263,13 +271,15 @@ static void *sdcard_writer_thread( void *parameter )
 #ifdef TRACE_LOOP
             printf("%s Waiting for a new block to be written [%d]\n", RT_DEBUG_ARCH, blk);
 #endif
-            sem_wait( &global_write_sem );
+            //sem_wait( &global_write_sem );
+            recved = 0;
+            rpmsg_queue_recv_nocopy( my_rpmsg, write_q, &src, (void *) &block, &recved, RL_BLOCK );
 
-            pthread_mutex_lock( &global_mutex );
-            data = global_queue[idx].block;
-            end  = global_queue[idx].is_last;
-            pthread_mutex_unlock( &global_mutex );
-            
+            pthread_mutex_lock( &local_mutex );
+            data = block->block;
+            end  = block->is_last;
+            pthread_mutex_unlock( &local_mutex );
+
             // Write block to file
 #ifdef TRACE_LOOP
             printf("%s Writting block [%d]\n", RT_DEBUG_ARCH, blk);
@@ -299,15 +309,18 @@ static void *sdcard_writer_thread( void *parameter )
 #ifdef TRACE_LOOP
             printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, blk);
 #endif
-            pthread_mutex_lock( &global_mutex );
-            if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered == 0) )
+            //pthread_mutex_lock( &local_mutex );
+            if( (block->is_read == 0) || (block->is_ciphered == 0) )
             {
                 printf("%s Internal error while writing file...\n", RT_DEBUG_ARCH);
                 return NULL;
             } //endif
-            memset( &global_queue[idx], 0, sizeof(global_queue[idx]) );
-            pthread_mutex_unlock( &global_mutex );
-            sem_post( &global_read_sem );
+            memset( block, 0, sizeof(local_queue[idx]) );
+            //pthread_mutex_unlock( &local_mutex );
+            
+            //sem_post( &global_read_sem );
+            src = 0;
+            rpmsg_lite_send_nocopy( my_rpmsg, read_ept, src, (void *) block, sizeof(block *) );
 
             // Increase index
             idx = (idx + 1) % NUM_BLOCKS;
@@ -366,15 +379,21 @@ int main( int argc, char **argv )
     platform_init();
     //env_init();  // Called from 'rpmsg_lite_remote_init()'
     my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
-    ctrl_q   = rpmsg_queue_create( my_rpmsg );
-    ctrl_ept = rpmsg_lite_create_ept( my_rpmsg, TC_LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, ctrl_q );
+    
+    // Create equivalent endpoints and queues
+    cipher_q   = rpmsg_queue_create( my_rpmsg );
+    cipher_ept = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_CIPHER_ADDR, rpmsg_queue_rx_cb, cipher_q );
+    read_q     = rpmsg_queue_create( my_rpmsg );
+    read_ept   = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_READ_ADDR, rpmsg_queue_rx_cb, read_q );
+    write_q    = rpmsg_queue_create( my_rpmsg );
+    write_ept  = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_WRITE_ADDR, rpmsg_queue_rx_cb, write_q );
     
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
-    pthread_mutex_init( &global_mutex, &mattr );
-    sem_init( &global_read_sem,   1, 1 );  sem_wait( &global_read_sem );
-    sem_init( &global_write_sem,  1, 1 );  sem_wait( &global_write_sem );
-    memset( global_queue, 0, sizeof(global_queue) );
+    pthread_mutex_init( &local_mutex, &mattr );
+    //sem_init( &global_read_sem,   1, 1 );  sem_wait( &global_read_sem );
+    //sem_init( &global_write_sem,  1, 1 );  sem_wait( &global_write_sem );
+    memset( local_queue, 0, sizeof(local_queue) );
     
     // Mount SDCARD filesystem
     if( mnt_init() != 0 )

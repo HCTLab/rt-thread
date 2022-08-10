@@ -63,13 +63,33 @@ void rt_hw_spin_unlock( rt_hw_spinlock_t *lock )
 }
 
 // Dynamically control preemption on other cores
-int  is_preemtive = 1;
+extern int  global_preemptive;
 
 void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
 {
-    if( is_preemtive != 0 )
+    int  i;
+    
+    if( ipi_vector == RT_SCHEDULE_IPI )
     {
-        MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+        if( global_preemptive != 0 )
+        {
+            // Do preemptive rescheduling in a different domain core
+            // Note: Currrently this HW only support asserting an IRQ in a single core
+            MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
+        }
+        else
+        {
+            // Do non-preemptive rescheduling in one or different domain cores
+            for( i=0; i<RT_CPUS_NR; i++ )
+            {
+                if( cpu_mask & (1<<i) )
+                {
+                    struct rt_cpu *pcpu = rt_cpu_index(i);
+                    
+                    pcpu->ipi_schedule = 1;  // Non-protected access -> TBD!
+                } //endif
+            } //endfor
+        } //endif
     } //endif
 }
 
@@ -203,6 +223,14 @@ long rt_hw_usec_get(void)
 
 void rt_hw_us_delay( rt_uint32_t us )
 {
+#if 1
+    long  stick, etick;
+    stick = rt_cpu_index(0)->tick;
+    etick = stick + (((long) us*RT_TICK_PER_SECOND) / 1000000L);
+    while( rt_cpu_index(0)->tick < etick );
+#else
+    rt_thread_sleep( ((long)us*RT_TICK_PER_SECOND) / 1000000L );
+#endif
 }
 
 //#define HYBRID_DEBUG

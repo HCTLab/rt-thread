@@ -18,13 +18,11 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <delay.h>
 
-// Block sizes
-//#define TRACE_LOOP
-#define  TEST_NUM               2
-#define  NUM_BLOCKS             1
-//#define  NUM_BLOCKS             8
-#define  BLOCK_SIZE            (16*1048)
+//#define  TRACE_LOOP
+#define  TEST_NUM               8
+#define  MAX_NUM_BLOCKS         8
 
 #define  TIME_MIN               0
 #define  TIME_MEDIUM            1
@@ -60,7 +58,10 @@ extern sem_t                    global_read_sem;
 extern sem_t                    global_cipher_sem;
 extern sem_t                    global_write_sem;
 
-extern block_t                  global_queue[ NUM_BLOCKS ];
+extern block_t                  global_queue[ MAX_NUM_BLOCKS ];
+
+extern int                      global_nblocks;
+extern int                      global_bsize;
 
 // Cipherer algorithm
 typedef  unsigned int  ub4;
@@ -98,8 +99,8 @@ void enc32(ub4 *block, ub4 *k1, ub4 *k2)
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
-  mix32(a,b,c,d,e,f,g,h);
-  mix32(a,b,c,d,e,f,g,h);
+  //mix32(a,b,c,d,e,f,g,h);
+  //mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
@@ -123,17 +124,6 @@ static void *cipher_thread( void *parameter )
     // Execute multiple times this test
     for( test=0; test<TEST_NUM; test++ )
     {
-        // Enable/disable preemption on other core according to test number
-        if( (test % 2) == 0 )  is_preemtive = 1;
-        else                   is_preemtive = 0;
-
-        // Unlock main reader thread on other core to start reading
-        for( i=0; i<NUM_BLOCKS; i++ )
-        {
-            sem_post( &global_read_sem );
-        } //endfor
-        printf("+");
-        
         // Read file in blocks and queue them to be ciphered by a consumer thread
         blk = 0;
         tim = 0;
@@ -147,7 +137,7 @@ static void *cipher_thread( void *parameter )
         {
             // Wait for a ciphered block and get (in exclusive mode) a new block to be used for reading
 #ifdef TRACE_LOOP
-            printf("%s Waiting for a new block to be ciphered [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Waiting for a new block to be ciphered [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
 #endif
             sem_wait( &global_cipher_sem );
 
@@ -164,12 +154,12 @@ static void *cipher_thread( void *parameter )
             
             // Cipher block
 #ifdef TRACE_LOOP
-            printf("%s Ciphering block [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Ciphering block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("C");
 #endif
             time_ini = rt_hw_usec_get();
-            for( i=0; i<BLOCK_SIZE>>5; i++ )
+            for( i=0; i<global_bsize>>5; i++ )
             {
 #ifdef DO_DECIPHER
                 dec32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
@@ -179,13 +169,13 @@ static void *cipher_thread( void *parameter )
                 enc32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
 #endif
             } //endfor
-            num += BLOCK_SIZE;
+            num += global_bsize;
             time_end = rt_hw_usec_get();
             time_op  = time_end - time_ini;
 
             // Mark block as ciphered, and move semaphore to let the writer thread to run
 #ifdef TRACE_LOOP
-            printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, blk);
+            printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, idx);
 #endif
             pthread_mutex_lock( &global_mutex );
             global_queue[idx].is_ciphered = 1;
@@ -202,7 +192,7 @@ static void *cipher_thread( void *parameter )
             } //endif
 
             // Increase index
-            idx = (idx + 1) % NUM_BLOCKS;
+            idx = (idx + 1) % global_nblocks;
             blk++;
 
             // Check for end condition (after unlocking SDCARD writer thread)
@@ -214,17 +204,22 @@ static void *cipher_thread( void *parameter )
 
         // Wait some seconds before starting a new test
         //printf("\n%s Cipher thread: %d bytes ciphered\n", RT_DEBUG_ARCH, num);
-        sleep(2);  
     } //endfor
     
     // Finish thread
+    mdelay( 1000 );
     printf("%s CIPHER thread finished...\n", RT_DEBUG_ARCH);
 
     // Report all timing
-    sleep(3); printf("\n");
+    mdelay( 2000 );
+    time_ini = rt_hw_usec_get();
+    time_end = rt_hw_usec_get();
+    printf("\n\nMin measured time (usecs): %ld\n", time_end-time_ini);
+
+    printf("\n%s ----------------------------- TIMING REPORT (usecs) -----------------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s   TEST #%d : OPS [%02d] ---                   --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
+        printf("%s   TEST #%d : OPS [%02d] --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, blk,
                time_cipher[idx][TIME_MIN], time_cipher[idx][TIME_MEDIUM], time_cipher[idx][TIME_MAX] );
     } //endfor
@@ -240,7 +235,7 @@ int main( int argc, char **argv )
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
 
     // Init shared inter-architecture IPC objects
-    sem_init( &global_cipher_sem, 1, 1 );  sem_wait( &global_cipher_sem );
+    sem_init( &global_cipher_sem, 1, 0 );
 
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );

@@ -20,16 +20,22 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <delay.h>
 
 // Files in SDCARD to be read/writen
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
-//#define TRACE_LOOP
-#define  TEST_NUM               2
-#define  NUM_BLOCKS             1
-//#define  NUM_BLOCKS             8
-#define  BLOCK_SIZE            (16*1048)
+//#define  TRACE_LOOP
+#define  TEST_NUM               8
+#define  MAX_NUM_BLOCKS         8
+
+// Define the number of block and the block size on each test
+// Number of blocks being read/ciphered/written simultaneously (== number of r/c/w operations in parallel)
+#define  KB                      6
+#define  NUM_BLOCKS            { 6       ,6        ,4        ,4        ,2        ,2        ,1        ,1        }
+#define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
+#define  PREEMPTIVE            { 1       ,0        ,1        ,0        ,1        ,0        ,1        ,0        }
 
 #define  TIME_MIN               0
 #define  TIME_MEDIUM            1
@@ -39,7 +45,7 @@
 // External non-declared functions/variables
 extern long  rt_hw_usec_get(void);
 extern int   mnt_init(void);
-extern int   is_preemtive;
+extern int   global_preemptive;
 
 // Define types
 typedef struct
@@ -61,6 +67,12 @@ static long                     time_full [ TEST_NUM ];
 static long                     time_read [ TEST_NUM ][ TIME_TYPES ];
 static long                     time_write[ TEST_NUM ][ TIME_TYPES ];
 
+static int                      nblocks[TEST_NUM] = NUM_BLOCKS;
+static int                      bsizes [TEST_NUM] = BLOCK_SIZE;
+static int                      preempt[TEST_NUM] = PREEMPTIVE;
+static int                      nrops  [TEST_NUM];
+static int                      nwops  [TEST_NUM];
+
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
 pthread_mutex_t                 global_mutex = PTHREAD_MUTEX_INITIALIZER;
 
@@ -68,8 +80,10 @@ sem_t                           global_read_sem;
 sem_t                           global_cipher_sem;
 sem_t                           global_write_sem;
 
-block_t                         global_queue[ NUM_BLOCKS ];
+block_t                         global_queue[ MAX_NUM_BLOCKS ];
 
+volatile int                    global_nblocks;
+volatile int                    global_bsize;
 
 static void *sdcard_reader_thread( void *parameter )
 {
@@ -94,14 +108,23 @@ static void *sdcard_reader_thread( void *parameter )
         } //endif
     } //wend
     */
-    
+
     // Execute multiple times this test
     for( test=0; test<TEST_NUM; test++ )
     {
-        // Enable/disable preemption on other core according to test number
-        if( (test % 2) == 0 )  is_preemtive = 1;
-        else                   is_preemtive = 0;
+        // Give some time between tests to ARM threads to be ready (and avoid using another valuable IPC synch)
+        mdelay( 2000 );
         
+        // Configure TEST parameters
+        global_nblocks    = nblocks[ test ];
+        global_bsize      = bsizes [ test ];
+        global_preemptive = preempt[ test ];
+        
+        // Prepare the number of parallel operations by initializing the value of the 'read' semaphore
+        // (which locks thread when maximum number of operations are reached)
+        while( sem_trywait( &global_read_sem ) == 0 );
+        for( i=0; i<global_nblocks; i++ )  sem_post( &global_read_sem ); 
+       
         // Try to open the file to be ciphered
         file = fopen( filename, "rb" );
         if( file == NULL )
@@ -124,7 +147,7 @@ static void *sdcard_reader_thread( void *parameter )
         {
             // Wait for a free block and use such block for reading
 #ifdef TRACE_LOOP
-            printf("%s Waiting for a new block to be read [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Waiting for a new block to be read [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
 #endif
             sem_wait( &global_read_sem );
             
@@ -137,7 +160,7 @@ static void *sdcard_reader_thread( void *parameter )
             } //endif
 
             // Alloc memory for a new block (it will be free by writer, once ciphered & copied to disk)
-            data = malloc( BLOCK_SIZE );
+            data = malloc( global_bsize );
             if( data == NULL )
             {
                 printf("%s Not enough memory! Exiting thread...\n", RT_DEBUG_ARCH);
@@ -156,12 +179,12 @@ static void *sdcard_reader_thread( void *parameter )
             
             // Read a block from file
 #ifdef TRACE_LOOP
-            printf("%s Reading block [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Reading block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("R");
 #endif
             time_ini = rt_hw_usec_get();
-            len  = fread( data, 1, BLOCK_SIZE, file );
+            len  = fread( data, 1, global_bsize, file );
             num += len;
             time_end = rt_hw_usec_get();
             time_op  = time_end - time_ini;
@@ -177,11 +200,11 @@ static void *sdcard_reader_thread( void *parameter )
             
             // Mark block as read, and move semaphore to let the cipherer thread to run
 #ifdef TRACE_LOOP
-            printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, blk);
+            printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, idx);
 #endif
             pthread_mutex_lock( &global_mutex );
             global_queue[idx].is_read = 1;
-            if( (len != BLOCK_SIZE) || feof(file) )
+            if( (len != global_bsize) || feof(file) )
             {
                 global_queue[idx].is_last = 1;
             } //endif
@@ -191,7 +214,7 @@ static void *sdcard_reader_thread( void *parameter )
             sem_post( &global_cipher_sem );
             
             // Increase index
-            idx = (idx + 1) % NUM_BLOCKS;
+            idx = (idx + 1) % global_nblocks;
             blk++;
         } //wend
         
@@ -201,14 +224,10 @@ static void *sdcard_reader_thread( void *parameter )
 
         // Calculate medium time for all read operations
         time_read[test][TIME_MEDIUM] /= tim;
-        
-        // Get all reader slots, till they will post on next test (to sync all thread when starting a new test)
-        for( i=0; i<NUM_BLOCKS; i++ )
-        {
-            sem_wait( &global_read_sem );
-        } //endfor
+        nrops[test] = blk;
     } //endfor
         
+    mdelay( 1000 );
     printf("%s SDCARD reader thread finished...\n", RT_DEBUG_ARCH);
 
     return NULL;
@@ -248,7 +267,7 @@ static void *sdcard_writer_thread( void *parameter )
         {
             // Wait for a ciphered block and get (in exclusive mode) a new block to be used for reading
 #ifdef TRACE_LOOP
-            printf("%s Waiting for a new block to be written [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Waiting for a new block to be written [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
 #endif
             sem_wait( &global_write_sem );
 
@@ -259,12 +278,12 @@ static void *sdcard_writer_thread( void *parameter )
             
             // Write block to file
 #ifdef TRACE_LOOP
-            printf("%s Writting block [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Writting block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("W");
 #endif
             time_ini = rt_hw_usec_get();
-            len  = fwrite( data, 1, BLOCK_SIZE, file );
+            len  = fwrite( data, 1, global_bsize, file );
             num += len;
             fflush( file );
             time_end = rt_hw_usec_get();
@@ -284,7 +303,7 @@ static void *sdcard_writer_thread( void *parameter )
             
             // Mark block as written, and move semaphore to let the reader thread to run and repeat the big loop
 #ifdef TRACE_LOOP
-            printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, blk);
+            printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, idx);
 #endif
             pthread_mutex_lock( &global_mutex );
             if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered == 0) )
@@ -297,7 +316,7 @@ static void *sdcard_writer_thread( void *parameter )
             sem_post( &global_read_sem );
 
             // Increase index
-            idx = (idx + 1) % NUM_BLOCKS;
+            idx = (idx + 1) % global_nblocks;
             blk++;
 
             // Check for end condition
@@ -309,6 +328,7 @@ static void *sdcard_writer_thread( void *parameter )
 
         // Calculate medium time for all write operations
         time_write[test][TIME_MEDIUM] /= tim;
+        nwops[test] = blk;
 
         // Finish thread
         fclose( file );
@@ -318,24 +338,24 @@ static void *sdcard_writer_thread( void *parameter )
     printf("\n\n%s SDCARD writer thread finished...\n", RT_DEBUG_ARCH);
 
     // Report all timing
-    sleep(2);
+    mdelay( 2000 );
     time_ini = rt_hw_usec_get();
     time_end = rt_hw_usec_get();
     printf("\n\nMin measured time (usecs): %ld\n", time_end-time_ini);
 
-    printf("\n%s ------------------- TIMING REPORT (usecs) -------------------\n", RT_DEBUG_ARCH);
+    printf("\n%s -------------------------------------------------- TIMING REPORT (usecs) --------------------------------------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s TEST #%d : OPS [%02d] --- TOTAL [%9ld] --- RMIN [%8ld] RMED [%8ld] RMAX [%8ld]\n", 
-               RT_DEBUG_ARCH, idx, blk, time_full[idx], 
-               time_read[idx][TIME_MIN],  time_read[idx][TIME_MEDIUM],  time_read[idx][TIME_MAX]);
+        printf("%s TEST #%d : POPS [%2d] BSIZE [%5d] PREEMP [%2d] OPS [%4d] --- TOTAL [%9ld] --- RMIN [%8ld] RMED [%8ld] RMAX [%8ld]\n", 
+               RT_DEBUG_ARCH, idx, nblocks[idx], bsizes[idx], preempt[idx], nrops[idx],
+               time_full[idx], time_read[idx][TIME_MIN],  time_read[idx][TIME_MEDIUM],  time_read[idx][TIME_MAX]);
     } //endfor
     printf("\n");
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s TEST #%d : OPS [%02d] --- TOTAL [%9ld] --- WMIN [%8ld] WMED [%8ld] WMAX [%8ld]\n", 
-               RT_DEBUG_ARCH, idx, blk, time_full[idx], 
-               time_write[idx][TIME_MIN], time_write[idx][TIME_MEDIUM], time_write[idx][TIME_MAX]);
+        printf("%s TEST #%d : POPS [%2d] BSIZE [%5d] PREEMP [%2d] OPS [%4d] --- TOTAL [%9ld] --- WMIN [%8ld] WMED [%8ld] WMAX [%8ld]\n", 
+               RT_DEBUG_ARCH, idx, nblocks[idx], bsizes[idx], preempt[idx], nwops[idx],
+               time_full[idx], time_write[idx][TIME_MIN], time_write[idx][TIME_MEDIUM], time_write[idx][TIME_MAX]);
     } //endfor
 
     return NULL;
@@ -349,12 +369,14 @@ int main( int argc, char **argv )
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
     
+    // Init shared queue
+    memset( global_queue, 0, sizeof(global_queue) );
+    
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
     pthread_mutex_init( &global_mutex, &mattr );
-    sem_init( &global_read_sem,   1, 1 );  sem_wait( &global_read_sem );
-    sem_init( &global_write_sem,  1, 1 );  sem_wait( &global_write_sem );
-    memset( global_queue, 0, sizeof(global_queue) );
+    sem_init( &global_read_sem,   1, 0 );  // It will be re-initialized by reader thread at the beginning of each test
+    sem_init( &global_write_sem,  1, 0 );
     
     // Mount SDCARD filesystem
     if( mnt_init() != 0 )
@@ -362,7 +384,7 @@ int main( int argc, char **argv )
         printf( "Please insert a SDCARD and restart the system!\n", RT_DEBUG_ARCH );
         return 0;
     } //endif
-
+    
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;

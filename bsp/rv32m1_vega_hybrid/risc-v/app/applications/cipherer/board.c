@@ -293,7 +293,7 @@ void rt_hw_spin_unlock(rt_hw_spinlock_t *lock)
 }
 
 // Dynamically control preemption on other cores
-int  is_preemtive = 1;
+int  global_preemptive;
 
 void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
 {
@@ -301,7 +301,7 @@ void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
     
     if( ipi_vector == RT_SCHEDULE_IPI )
     {
-        if( is_preemtive != 0 )
+        if( global_preemptive != 0 )
         {
             // Do preemptive rescheduling in a different domain core
             // Note: Currrently this HW only support asserting an IRQ in a single core
@@ -383,6 +383,14 @@ void rt_hw_cpu_shutdown()
 
 void rt_hw_us_delay( rt_uint32_t us )
 {
+#if 1
+    long  stick, etick;
+    stick = rt_cpu_index(0)->tick;
+    etick = stick + (((long) us*RT_TICK_PER_SECOND) / 1000000L);
+    while( rt_cpu_index(0)->tick < etick );
+#else
+    rt_thread_sleep( ((long)us*RT_TICK_PER_SECOND) / 1000000L );
+#endif
 }
 
 //#define HYBRID_DEBUG
@@ -390,7 +398,7 @@ void rt_hw_us_delay( rt_uint32_t us )
 #define OBJ_APP_SEMA42              SEMA420             // HW instance
 #define OBJ_LOCK_CORE               0U                  // Core 0 (RI5CY) locking identifier
 
-struct rt_object *rt_hw_gate[MAX_GATES+1] = { 0 };        // Assigned gates to objects
+struct rt_object *rt_hw_gate[MAX_GATES+1] = { 0 };      // Assigned gates to objects
 
 void rt_hw_object_delete( struct rt_object *object )
 {
