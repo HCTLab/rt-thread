@@ -60,7 +60,7 @@ static rt_uint8_t rt_thread_stack[_CPUS_NR][IDLE_THREAD_STACK_SIZE];
 static struct rt_thread rt_system_thread;
 ALIGN(RT_ALIGN_SIZE)
 static rt_uint8_t rt_system_stack[SYSTEM_THREAD_STACK_SIZE];
-//static struct rt_semaphore system_sem;  //(JAAS) Unnecessary on hybrid architecture
+static struct rt_semaphore system_sem;
 #endif
 
 #ifdef RT_USING_IDLE_HOOK
@@ -148,7 +148,7 @@ void rt_thread_defunct_enqueue(rt_thread_t thread)
 {
     rt_list_insert_after(&_rt_thread_defunct, &thread->tlist);
 #ifdef RT_USING_SMP
-    //rt_sem_release(&system_sem);  //(JAAS) Unnecessary on hybrid architecture
+    rt_sem_release(&system_sem);
 #endif
 }
 
@@ -294,7 +294,7 @@ static void rt_thread_system_entry(void *parameter)
 {
     while (1)
     {
-        //rt_sem_take(&system_sem, RT_WAITING_FOREVER);  //(JAAS) Unnecessary on hybrid architecture
+        rt_sem_take(&system_sem, RT_WAITING_FOREVER);
         rt_defunct_execute();
     }
 }
@@ -333,7 +333,7 @@ void rt_thread_idle_init(void)
 #ifdef RT_USING_SMP
     RT_ASSERT(RT_THREAD_PRIORITY_MAX > 2);
 
-    //rt_sem_init(&system_sem, "defunct", 1, RT_IPC_FLAG_FIFO);  //(JAAS) Unnecessary on hybrid architecture
+    rt_sem_init(&system_sem, "defunct", 1, RT_IPC_FLAG_FIFO);
 
     /* create defunct thread */
     rt_thread_init(&rt_system_thread,

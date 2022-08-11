@@ -17,7 +17,7 @@
 #define RT_USING_HOOK
 #define RT_USING_IDLE_HOOK
 #define RT_IDLE_HOOK_LIST_SIZE 4
-#define IDLE_THREAD_STACK_SIZE 1024
+#define IDLE_THREAD_STACK_SIZE 2048
 
 #define RT_DEBUG
 //#define RT_DEBUG_COLOR
@@ -112,7 +112,7 @@
 #define RT_PIPE_BUFSZ 512
 #define RT_USING_SERIAL
 #define RT_USING_PIN
-#define RT_USING_RTC
+//#define RT_USING_RTC
 
 /* Using WiFi */
 

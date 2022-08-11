@@ -114,9 +114,9 @@ __attribute__ ((weak)) void SystemInitHook (void) {
   /* Void implementation of the weak function. */
 }
 
-/* Use LIPT1 channel 0 for systick. */
+/* Use LIPT1 channel 1 for systick. */
 #define SYSTICK_LPIT LPIT1
-#define SYSTICK_LPIT_CH 0
+#define SYSTICK_LPIT_CH 1
 #define SYSTICK_LPIT_IRQn LPIT1_IRQn
 
 /* Leverage LPIT1 to provide Systick */
