@@ -178,22 +178,11 @@ static uint32_t  tick_max_count_o = 0L;
 
 void LPIT0_IRQHandler(void)
 {
-    /* Internal check to verify this function is ONLY called from HW
-    static int faults = 0;
-    register uint32_t count = LPIT_GetCurrentTimerCount( LPIT0, 0 );
-    if( count < (tick_max_count - 10000) )
-    {
-        if( ++faults > 5 )
-        {
-            rt_kprintf("\nWrong LPIT counter CNT [%d] MAX_CNT [%d] TICKS [%ld]... Locked!\n", count, tick_max_count, rt_tick_get());
-            while(1);
-        } //endif
-    } //endif
-    */
-    
-    rt_tick_increase();
-
+    // Since rt_tick_increase() might reschedule, clear ISR flag now
     SystemClearSystickFlag();
+    
+    // Call RTOS and do scheduling when needed
+    rt_tick_increase();
 }
 
 int rt_hw_systick_init(void)
@@ -205,7 +194,7 @@ int rt_hw_systick_init(void)
 
     SystemSetupSystick( RT_TICK_PER_SECOND, 0 );  // 0 = Top priority
     SystemClearSystickFlag();
-
+    
     return 0;
 }
 
@@ -318,6 +307,7 @@ void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
             // Note: Currrently this HW only support asserting an IRQ in a single core
             MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
         }
+//#ifdef NON_PREEMPTIVE_SUPPORT
         else
         {
             // Do non-preemptive rescheduling in one or different domain cores
@@ -331,6 +321,7 @@ void rt_hw_ipi_send(int ipi_vector, unsigned int cpu_mask)
                 } //endif
             } //endfor
         } //endif
+//#endif
     } //endif
 }
 

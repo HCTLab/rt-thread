@@ -77,6 +77,7 @@ void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
             // Note: Currrently this HW only support asserting an IRQ in a single core
             MU_TriggerInterrupts( APP_MU, kMU_GenInt0InterruptTrigger );
         }
+//#ifdef NON_PREEMPTIVE_SUPPORT
         else
         {
             // Do non-preemptive rescheduling in one or different domain cores
@@ -90,6 +91,7 @@ void rt_hw_ipi_send( int ipi_vector, unsigned int cpu_mask )
                 } //endif
             } //endfor
         } //endif
+//#endif
     } //endif
 }
 
@@ -155,9 +157,11 @@ void rt_hw_cpu_shutdown()
 
 void LPIT1_IRQHandler( void )
 {
-    rt_tick_increase();
-
+    // Since rt_tick_increase() might reschedule, clear ISR flag now
     SystemClearSystickFlag();
+
+    // Call RTOS and do scheduling when needed
+    rt_tick_increase();
 }
 
 static uint32_t  tick_max_count   = 0L;

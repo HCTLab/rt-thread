@@ -26,16 +26,17 @@
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
+//#define  VERBOSE
 //#define  TRACE_LOOP
-#define  TEST_NUM               8
+#define  TEST_NUM               12
 #define  MAX_NUM_BLOCKS         8
 
 // Define the number of block and the block size on each test
 // Number of blocks being read/ciphered/written simultaneously (== number of r/c/w operations in parallel)
 #define  KB                      6
-#define  NUM_BLOCKS            { 6       ,6        ,4        ,4        ,2        ,2        ,1        ,1        }
-#define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
-#define  PREEMPTIVE            { 1       ,0        ,1        ,0        ,1        ,0        ,1        ,0        }
+#define  NUM_BLOCKS            { 6       ,5        ,4        ,3        ,2        ,1        ,6        ,5        ,4        ,3        ,2        ,1        }
+#define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
+#define  PREEMPTIVE            { 1       ,1        ,1        ,1        ,1        ,1        ,0        ,0        ,0        ,0        ,0        ,0        }
 
 #define  TIME_MIN               0
 #define  TIME_MEDIUM            1
@@ -85,6 +86,9 @@ block_t                         global_queue[ MAX_NUM_BLOCKS ];
 
 volatile int                    global_nblocks;
 volatile int                    global_bsize;
+
+extern int                      measure_ticks;  //(JAAS) Internal checks
+
 
 static void *sdcard_reader_thread( void *parameter )
 {
@@ -148,8 +152,10 @@ static void *sdcard_reader_thread( void *parameter )
         while( !feof(file) )
         {
             // Wait for a free block and use such block for reading
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Waiting for a new block to be read [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
+#endif
 #endif
             sem_wait( &global_read_sem );
             
@@ -157,7 +163,7 @@ static void *sdcard_reader_thread( void *parameter )
             if( first_block != 0 )
             {
                 first_block = 0;
-                printf("\n\n%s Starting test #%d... Tick [%ld]\n", RT_DEBUG_ARCH, test, rt_tick_get());
+                printf("\n\n%s Starting test #%d...\n", RT_DEBUG_ARCH, test);
                 time_start = rt_hw_usec_get();
                 tick_start = rt_tick_get();
             } //endif
@@ -181,10 +187,12 @@ static void *sdcard_reader_thread( void *parameter )
             pthread_mutex_unlock( &global_mutex );
             
             // Read a block from file
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Reading block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("R");
+#endif
 #endif
             time_ini = rt_hw_usec_get();
             len  = fread( data, 1, global_bsize, file );
@@ -202,8 +210,10 @@ static void *sdcard_reader_thread( void *parameter )
             } //endif
             
             // Mark block as read, and move semaphore to let the cipherer thread to run
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, idx);
+#endif
 #endif
             pthread_mutex_lock( &global_mutex );
             global_queue[idx].is_read = 1;
@@ -269,8 +279,10 @@ static void *sdcard_writer_thread( void *parameter )
         while( 1 )
         {
             // Wait for a ciphered block and get (in exclusive mode) a new block to be used for reading
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Waiting for a new block to be written [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
+#endif
 #endif
             sem_wait( &global_write_sem );
 
@@ -280,10 +292,12 @@ static void *sdcard_writer_thread( void *parameter )
             pthread_mutex_unlock( &global_mutex );
             
             // Write block to file
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Writting block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("W");
+#endif
 #endif
             time_ini = rt_hw_usec_get();
             len  = fwrite( data, 1, global_bsize, file );
@@ -305,8 +319,10 @@ static void *sdcard_writer_thread( void *parameter )
             free( data );
             
             // Mark block as written, and move semaphore to let the reader thread to run and repeat the big loop
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, idx);
+#endif
 #endif
             pthread_mutex_lock( &global_mutex );
             if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered == 0) )
@@ -329,8 +345,7 @@ static void *sdcard_writer_thread( void *parameter )
         // Calculate full process timing
         time_full [test] = rt_hw_usec_get() - time_start;
         time_ticks[test] = rt_tick_get()    - tick_start;
-        //printf("E");
-        printf("\n%s Ending test #%d... Tick [%ld]  ", RT_DEBUG_ARCH, test, rt_tick_get());
+        printf("\n%s Ending test #%d... Duration [%ld] usecs ", RT_DEBUG_ARCH, test, time_full [test]);
 
         // Calculate medium time for all write operations
         time_write[test][TIME_MEDIUM] /= tim;
@@ -347,19 +362,19 @@ static void *sdcard_writer_thread( void *parameter )
     mdelay( 2000 );
     time_ini = rt_hw_usec_get();
     time_end = rt_hw_usec_get();
-    printf("\n\nMin measured time (usecs): %ld\n", time_end-time_ini);
+    //printf("\n\n%s Error in measures (in usecs): %ld\n", RT_DEBUG_ARCH, time_end-time_ini);
 
     printf("\n%s -------------------------------------------------- TIMING REPORT (usecs) --------------------------------------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s TEST #%d : POPS [%2d] BSIZE [%5d] PREEMP [%2d] OPS [%4d] --- TOTAL [%9ld] TICKS [%6ld] --- RMIN [%8ld] RMED [%8ld] RMAX [%8ld]\n", 
+        printf("%s TEST #%02d : POPS [%2d] BSIZE [%5d] PREEMP [%2d] OPS [%4d] --- TOTAL [%9ld] TICKS [%6ld] --- RMIN [%8ld] RMED [%8ld] RMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, nblocks[idx], bsizes[idx], preempt[idx], nrops[idx],
                time_full[idx], time_ticks[idx], time_read[idx][TIME_MIN],  time_read[idx][TIME_MEDIUM],  time_read[idx][TIME_MAX]);
     } //endfor
     printf("\n");
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s TEST #%d : POPS [%2d] BSIZE [%5d] PREEMP [%2d] OPS [%4d] --- TOTAL [%9ld] TICKS [%6ld] --- WMIN [%8ld] WMED [%8ld] WMAX [%8ld]\n", 
+        printf("%s TEST #%02d : POPS [%2d] BSIZE [%5d] PREEMP [%2d] OPS [%4d] --- TOTAL [%9ld] TICKS [%6ld] --- WMIN [%8ld] WMED [%8ld] WMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, nblocks[idx], bsizes[idx], preempt[idx], nwops[idx],
                time_full[idx], time_ticks[idx], time_write[idx][TIME_MIN], time_write[idx][TIME_MEDIUM], time_write[idx][TIME_MAX]);
     } //endfor

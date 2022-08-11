@@ -20,8 +20,9 @@
 #include <semaphore.h>
 #include <delay.h>
 
+//#define  VERBOSE
 //#define  TRACE_LOOP
-#define  TEST_NUM               8
+#define  TEST_NUM               12
 #define  MAX_NUM_BLOCKS         8
 
 #define  TIME_MIN               0
@@ -136,8 +137,10 @@ static void *cipher_thread( void *parameter )
         while( 1 )
         {
             // Wait for a ciphered block and get (in exclusive mode) a new block to be used for reading
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Waiting for a new block to be ciphered [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
+#endif
 #endif
             sem_wait( &global_cipher_sem );
 
@@ -153,10 +156,12 @@ static void *cipher_thread( void *parameter )
             pthread_mutex_unlock( &global_mutex );
             
             // Cipher block
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Ciphering block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("C");
+#endif
 #endif
             time_ini = rt_hw_usec_get();
             for( i=0; i<global_bsize>>5; i++ )
@@ -174,8 +179,10 @@ static void *cipher_thread( void *parameter )
             time_op  = time_end - time_ini;
 
             // Mark block as ciphered, and move semaphore to let the writer thread to run
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
             printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, idx);
+#endif
 #endif
             pthread_mutex_lock( &global_mutex );
             global_queue[idx].is_ciphered = 1;
@@ -214,12 +221,12 @@ static void *cipher_thread( void *parameter )
     mdelay( 2000 );
     time_ini = rt_hw_usec_get();
     time_end = rt_hw_usec_get();
-    printf("\n\nMin measured time (usecs): %ld\n", time_end-time_ini);
+    //printf("\n\n%s Error in measures (in usecs): %ld\n", RT_DEBUG_ARCH, time_end-time_ini);
 
     printf("\n%s ----------------------------- TIMING REPORT (usecs) -----------------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s   TEST #%d : OPS [%02d] --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
+        printf("%s   TEST #%02d : OPS [%02d] --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, blk,
                time_cipher[idx][TIME_MIN], time_cipher[idx][TIME_MEDIUM], time_cipher[idx][TIME_MAX] );
     } //endfor

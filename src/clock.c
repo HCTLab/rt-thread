@@ -85,6 +85,8 @@ void rt_tick_set(rt_tick_t tick)
     rt_hw_interrupt_enable(level);
 }
 
+//extern int  rt_tick_asserted;  // Check invalid calls to this routine
+
 /**
  * @brief    This function will notify kernel there is one tick passed.
  *           Normally, this function is invoked by clock ISR.
@@ -104,6 +106,10 @@ void rt_tick_increase(void)
 #else
     ++ rt_tick;
 #endif /* RT_USING_SMP */
+    
+    // Locate unauthorized calls to this function
+    //if( rt_tick_asserted == 0 ) { rt_kprintf("\nIntercepted an invalid call to rt_tick_increase()"); while(1); }
+    //rt_tick_asserted = 0;
 
     /* check time slice */
     thread = rt_thread_self();
