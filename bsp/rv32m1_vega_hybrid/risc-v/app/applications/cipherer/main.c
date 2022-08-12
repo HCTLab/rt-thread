@@ -26,17 +26,17 @@
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
-//#define  VERBOSE
+#define  VERBOSE
 //#define  TRACE_LOOP
-#define  TEST_NUM               12
-#define  MAX_NUM_BLOCKS         8
+#define  TEST_NUM               8
+#define  MAX_NUM_BLOCKS         16
 
 // Define the number of block and the block size on each test
 // Number of blocks being read/ciphered/written simultaneously (== number of r/c/w operations in parallel)
-#define  KB                      6
-#define  NUM_BLOCKS            { 6       ,5        ,4        ,3        ,2        ,1        ,6        ,5        ,4        ,3        ,2        ,1        }
-#define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
-#define  PREEMPTIVE            { 1       ,1        ,1        ,1        ,1        ,1        ,0        ,0        ,0        ,0        ,0        ,0        }
+#define  KB                     8
+#define  NUM_BLOCKS            {8        ,4        ,2        ,1        ,8        ,4        ,2        ,1        }
+#define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
+#define  PREEMPTIVE            {1        ,1        ,1        ,1        ,0        ,0        ,0        ,0        }
 
 #define  TIME_MIN               0
 #define  TIME_MEDIUM            1
@@ -100,6 +100,7 @@ static void *sdcard_reader_thread( void *parameter )
     static int      first_block;
 
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
+    mdelay( 1000 );
     
     /* Verify rt_hw_usec_get() is returning good values (and there is no tick overflow)
     for(tim=1;;tim++)
@@ -405,7 +406,7 @@ int main( int argc, char **argv )
         printf( "Please insert a SDCARD and restart the system!\n", RT_DEBUG_ARCH );
         return 0;
     } //endif
-    
+
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;

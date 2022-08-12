@@ -20,10 +20,10 @@
 #include <semaphore.h>
 #include <delay.h>
 
-//#define  VERBOSE
+#define  VERBOSE
 //#define  TRACE_LOOP
-#define  TEST_NUM               12
-#define  MAX_NUM_BLOCKS         8
+#define  TEST_NUM               8
+#define  MAX_NUM_BLOCKS         16
 
 #define  TIME_MIN               0
 #define  TIME_MEDIUM            1
@@ -64,31 +64,32 @@ extern block_t                  global_queue[ MAX_NUM_BLOCKS ];
 extern int                      global_nblocks;
 extern int                      global_bsize;
 
-// Cipherer algorithm
-typedef  unsigned int  ub4;
+// Cipher algorithm (a nice Bob Jenkins's cipherer taken from https://burtleburtle.net/bob/c/myblock.c)
+typedef  unsigned int  ub4;        // 256 bit-block ciphering
+//typedef  unsigned long long  ub8;  // 512 bit-block ciphering
 
 #define mix32(a,b,c,d,e,f,g,h) \
 { \
-   a-=e; f^=h>>13; h+=a; \
+   a-=e; f^=h>>8;  h+=a; \
    b-=f; g^=a<<8;  a+=b; \
-   c-=g; h^=b>>8;  b+=c; \
-   d-=h; a^=c<<8;  c+=d; \
-   e-=a; b^=d>>11; d+=e; \
-   f-=b; c^=e<<5;  e+=f; \
-   g-=c; d^=f>>6;  f+=g; \
-   h-=d; e^=g<<4;  g+=h; \
+   c-=g; h^=b>>11; b+=c; \
+   d-=h; a^=c<<3;  c+=d; \
+   e-=a; b^=d>>6;  d+=e; \
+   f-=b; c^=e<<4;  e+=f; \
+   g-=c; d^=f>>13; f+=g; \
+   h-=d; e^=g<<13; g+=h; \
 }
 
 #define unmix32(a,b,c,d,e,f,g,h) \
 { \
-   g-=h; e^=g<<4;  h+=d; \
-   f-=g; d^=f>>6;  g+=c; \
-   e-=f; c^=e<<5;  f+=b; \
-   d-=e; b^=d>>11; e+=a; \
-   c-=d; a^=c<<8;  d+=h; \
-   b-=c; h^=b>>8;  c+=g; \
+   g-=h; e^=g<<13; h+=d; \
+   f-=g; d^=f>>13; g+=c; \
+   e-=f; c^=e<<4;  f+=b; \
+   d-=e; b^=d>>6;  e+=a; \
+   c-=d; a^=c<<3;  d+=h; \
+   b-=c; h^=b>>11; c+=g; \
    a-=b; g^=a<<8;  b+=f; \
-   h-=a; f^=h>>13; a+=e; \
+   h-=a; f^=h>>8;  a+=e; \
 }
 
 void enc32(ub4 *block, ub4 *k1, ub4 *k2)
@@ -100,8 +101,8 @@ void enc32(ub4 *block, ub4 *k1, ub4 *k2)
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
-  //mix32(a,b,c,d,e,f,g,h);
-  //mix32(a,b,c,d,e,f,g,h);
+  mix32(a,b,c,d,e,f,g,h);
+  mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
   mix32(a,b,c,d,e,f,g,h);
@@ -110,6 +111,27 @@ void enc32(ub4 *block, ub4 *k1, ub4 *k2)
   mix32(a,b,c,d,e,f,g,h);
   block[0]=a^k2[0]; block[1]=b^k2[1]; block[2]=c^k2[2]; block[3]=d^k2[3];
   block[4]=e^k2[4]; block[5]=f^k2[5]; block[6]=g^k2[6]; block[7]=h^k2[7];
+}
+
+void dec32(ub4 *block, ub4 *k1, ub4 *k2)
+{
+  register ub4 a,b,c,d,e,f,g,h;
+  a=block[0]^k2[0]; b=block[1]^k2[1]; c=block[2]^k2[2]; d=block[3]^k2[3];
+  e=block[4]^k2[4]; f=block[5]^k2[5]; g=block[6]^k2[6]; h=block[7]^k2[7];
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  block[0]=a^k1[0]; block[1]=b^k1[1]; block[2]=c^k1[2]; block[3]=d^k1[3];
+  block[4]=e^k1[4]; block[5]=f^k1[5]; block[6]=g^k1[6]; block[7]=h^k1[7];
 }
 
 static void *cipher_thread( void *parameter )
