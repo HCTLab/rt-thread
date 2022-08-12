@@ -110,7 +110,7 @@ static void *sdcard_reader_thread( void *parameter )
     long            time_ini, time_end, time_op;
     static int      first_block;
     block_t        *block;
-    int             recved;
+    int             error, recved;
     unsigned long   src;
     
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
@@ -143,7 +143,7 @@ static void *sdcard_reader_thread( void *parameter )
         // Prepare the number of blocks which can be read before locking the thread.
         while( sem_trywait( &local_read_sem ) == 0 );
         for( i=0; i<global_nblocks; i++ )  sem_post( &local_read_sem ); 
-       
+
         // Try to open the file to be ciphered
         file = fopen( filename, "rb" );
         if( file == NULL )
@@ -236,7 +236,7 @@ static void *sdcard_reader_thread( void *parameter )
             //sem_post( &global_cipher_sem );  // POSIX IPC mech to be compared
             src = 0;
             block = &local_queue[idx];
-            rpmsg_lite_send_nocopy( my_rpmsg, cipher_ept, src, (void *) &block, sizeof(block_t *) );
+            error = rpmsg_lite_send_nocopy( my_rpmsg, cipher_ept, src, (void *) &block, sizeof(block_t *) );
             
             // Increase index
             idx = (idx + 1) % global_nblocks;
@@ -411,7 +411,7 @@ int main( int argc, char **argv )
     // Init RPMSG_LITE OpenAMP env
     platform_init();
     //env_init();  // Called from 'rpmsg_lite_remote_init()'
-    my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
+    my_rpmsg = rpmsg_lite_master_init( rpmsg_lite_base, BOARD_SHARED_MEMORY_SIZE, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
     
     // Create RPMSG_LITE endpoints and queues
     cipher_q   = rpmsg_queue_create( my_rpmsg );
@@ -419,6 +419,9 @@ int main( int argc, char **argv )
     write_q    = rpmsg_queue_create( my_rpmsg );
     write_ept  = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_WRITE_ADDR, rpmsg_queue_rx_cb, write_q );
     
+    // Wait till RPMSG is ready
+    while( !rpmsg_lite_is_link_up(my_rpmsg) ) { printf("."); sleep(1); }
+
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
     //pthread_mutex_init( &local_mutex, &mattr );
