@@ -23,7 +23,7 @@ extern unsigned char __heap_start;
 #define RT_HW_HEAP_BEGIN            (void*)(0x2001D000)
 #define RT_HW_HEAP_END              (void*)(0x20020000)
 #define BOARD_SHARED_MEMORY_BASE    (void*)(0x20020000)
-#define BOARD_SHARED_MEMORY_SIZE    0x8000
+#define BOARD_SHARED_MEMORY_SIZE    0x10000
 
 /* Definitions for eRPC MU transport layer */
 #if defined(FSL_FEATURE_MU_SIDE_A)

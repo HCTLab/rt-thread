@@ -90,6 +90,7 @@ struct rpmsg_lite_endpoint     *cipher_ept;
 rpmsg_queue_handle              cipher_q;
 struct rpmsg_lite_endpoint     *write_ept;
 rpmsg_queue_handle              write_q;
+void                           *tx_buf[ TEST_NUM ];
 
 // Local architecture MUTEX and queue
 //pthread_mutex_t                 local_mutex = PTHREAD_MUTEX_INITIALIZER;
@@ -236,7 +237,8 @@ static void *sdcard_reader_thread( void *parameter )
             //sem_post( &global_cipher_sem );  // POSIX IPC mech to be compared
             src = 0;
             block = &local_queue[idx];
-            error = rpmsg_lite_send_nocopy( my_rpmsg, cipher_ept, src, (void *) &block, sizeof(block_t *) );
+            memcpy( tx_buf[idx], &block, sizeof(block) );
+            error = rpmsg_lite_send_nocopy( my_rpmsg, cipher_ept, src, tx_buf[idx], sizeof(block) );
             
             // Increase index
             idx = (idx + 1) % global_nblocks;
@@ -404,6 +406,7 @@ int main( int argc, char **argv )
 {
     pthread_mutexattr_t     mattr;
     pthread_attr_t          attr;
+    unsigned long           size, i;
     
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
@@ -428,11 +431,22 @@ int main( int argc, char **argv )
     sem_init( &local_read_sem,   1, 0 );    // It will be re-initialized by reader thread at the beginning of each test
     //sem_init( &global_write_sem,  1, 0 );
     memset( local_queue, 0, sizeof(local_queue) );
+
+    // Alloc RPMSG Lite messages that can transmitted
+    for( i=0; i<TEST_NUM; i++ )
+    {
+        tx_buf[i] = rpmsg_lite_alloc_tx_buffer( my_rpmsg, &size, 0 );  // 0 == RL_NONBLOCK
+        if( tx_buf[i] == NULL )
+        {
+            printf( "%s Not enough memory for RPMSG Lite message!\n", RT_DEBUG_ARCH );
+            return 0;
+        } //endif
+    } //endfor
     
     // Mount SDCARD filesystem
     if( mnt_init() != 0 )
     {
-        printf( "Please insert a SDCARD and restart the system!\n", RT_DEBUG_ARCH );
+        printf( "%s Please insert a SDCARD and restart the system!\n", RT_DEBUG_ARCH );
         return 0;
     } //endif
 

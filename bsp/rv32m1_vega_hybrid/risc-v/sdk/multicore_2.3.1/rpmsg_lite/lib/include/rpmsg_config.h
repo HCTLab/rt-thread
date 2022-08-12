@@ -11,5 +11,8 @@
 #ifndef _RPMSG_CONFIG_H
 #define _RPMSG_CONFIG_H
 
+#define RL_BUFFER_COUNT             32      // Max number of descriptors (buffers)
+#define RL_BUFFER_PAYLOAD_SIZE     (64-16)  // Always decrement 16 to obtain 2^n
+
 
 #endif /* _RPMSG_CONFIG_H */

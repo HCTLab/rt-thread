@@ -69,6 +69,7 @@ struct rpmsg_lite_endpoint     *cipher_ept;
 rpmsg_queue_handle              cipher_q;
 struct rpmsg_lite_endpoint     *write_ept;
 rpmsg_queue_handle              write_q;
+void                           *tx_buf[ TEST_NUM ];
 
 extern int                      global_nblocks;
 extern int                      global_bsize;
@@ -275,6 +276,7 @@ static void *cipher_thread( void *parameter )
 int main( int argc, char **argv )
 {
     pthread_attr_t          attr;
+    unsigned long           size, i;
 
     // Program starts!
     printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
@@ -293,6 +295,17 @@ int main( int argc, char **argv )
     // Init shared inter-architecture IPC objects
     //sem_init( &global_cipher_sem, 1, 0 );
 
+    // Alloc RPMSG Lite messages that can transmitted
+    for( i=0; i<TEST_NUM; i++ )
+    {
+        tx_buf[i] = rpmsg_lite_alloc_tx_buffer( my_rpmsg, &size, 0 );  // 0 == RL_NONBLOCK
+        if( tx_buf[i] == NULL )
+        {
+            printf( "%s Not enough memory for RPMSG Lite message!\n", RT_DEBUG_ARCH );
+            return 0;
+        } //endif
+    } //endfor
+    
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;
