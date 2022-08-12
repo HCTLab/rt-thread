@@ -18,34 +18,33 @@
 #include <unistd.h>
 #include <pthread.h>
 #include <semaphore.h>
+#include <delay.h>
 
 #include "board.h"
 #include "rpmsg_lite.h"
 #include "rpmsg_queue.h"
 #include "rpmsg_ns.h"
 
-// Block sizes
-//#define TRACE_LOOP
-#define  TEST_NUM               2
-#define  NUM_BLOCKS             1
-//#define  NUM_BLOCKS             8
-#define  BLOCK_SIZE            (16*1048)
+#define  VERBOSE
+//#define  TRACE_LOOP
+#define  TEST_NUM                   8
+#define  MAX_NUM_BLOCKS             16
 
-#define  TIME_MIN               0
-#define  TIME_MEDIUM            1
-#define  TIME_MAX               2
-#define  TIME_TYPES             3
+#define  TIME_MIN                   0
+#define  TIME_MEDIUM                1
+#define  TIME_MAX                   2
+#define  TIME_TYPES                 3
 
-#define  REMOTE_DEFAULT_EPT    (TC_REMOTE_EPT_ADDR)
+#define  LOCAL_EPT_CIPHER_ADDR      31
+#define  LOCAL_EPT_WRITE_ADDR       30
+#define  REMOTE_EPT_CIPHER_ADDR     41
+#define  REMOTE_EPT_WRITE_ADDR      40
 
-#define  TC_LOCAL_EPT_ADDR     (40)
-#define  TC_REMOTE_EPT_ADDR    (30)
-#define  TASK_STACK_SIZE        300
-
-#define  printf                 rt_kprintf
+#define  printf                     rt_kprintf
 
 // External non-declared functions/variables
 extern long  rt_hw_usec_get(void);
+extern int   platform_init(void);
 
 // Define types
 typedef struct
@@ -65,44 +64,41 @@ static long                     time_cipher[ TEST_NUM ][ TIME_TYPES ];
 
 // RPMSG_LITE objects
 void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
-struct rpmsg_lite_endpoint     *ctrl_ept;
-rpmsg_queue_handle              ctrl_q;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
+struct rpmsg_lite_endpoint     *cipher_ept;
+rpmsg_queue_handle              cipher_q;
+struct rpmsg_lite_endpoint     *write_ept;
+rpmsg_queue_handle              write_q;
 
-// Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
-pthread_mutex_t                 global_mutex;
+extern int                      global_nblocks;
+extern int                      global_bsize;
 
-sem_t                           global_read_sem;
-sem_t                           global_cipher_sem;
-sem_t                           global_write_sem;
-
-block_t                         global_queue[ NUM_BLOCKS ];
-
-// Cipherer algorithm
-typedef  unsigned int  ub4;
+// Cipher algorithm (a nice Bob Jenkins's cipherer taken from https://burtleburtle.net/bob/c/myblock.c)
+typedef  unsigned int  ub4;        // 256 bit-block ciphering
+//typedef  unsigned long long  ub8;  // 512 bit-block ciphering
 
 #define mix32(a,b,c,d,e,f,g,h) \
 { \
-   a-=e; f^=h>>13; h+=a; \
+   a-=e; f^=h>>8;  h+=a; \
    b-=f; g^=a<<8;  a+=b; \
-   c-=g; h^=b>>8;  b+=c; \
-   d-=h; a^=c<<8;  c+=d; \
-   e-=a; b^=d>>11; d+=e; \
-   f-=b; c^=e<<5;  e+=f; \
-   g-=c; d^=f>>6;  f+=g; \
-   h-=d; e^=g<<4;  g+=h; \
+   c-=g; h^=b>>11; b+=c; \
+   d-=h; a^=c<<3;  c+=d; \
+   e-=a; b^=d>>6;  d+=e; \
+   f-=b; c^=e<<4;  e+=f; \
+   g-=c; d^=f>>13; f+=g; \
+   h-=d; e^=g<<13; g+=h; \
 }
 
 #define unmix32(a,b,c,d,e,f,g,h) \
 { \
-   g-=h; e^=g<<4;  h+=d; \
-   f-=g; d^=f>>6;  g+=c; \
-   e-=f; c^=e<<5;  f+=b; \
-   d-=e; b^=d>>11; e+=a; \
-   c-=d; a^=c<<8;  d+=h; \
-   b-=c; h^=b>>8;  c+=g; \
+   g-=h; e^=g<<13; h+=d; \
+   f-=g; d^=f>>13; g+=c; \
+   e-=f; c^=e<<4;  f+=b; \
+   d-=e; b^=d>>6;  e+=a; \
+   c-=d; a^=c<<3;  d+=h; \
+   b-=c; h^=b>>11; c+=g; \
    a-=b; g^=a<<8;  b+=f; \
-   h-=a; f^=h>>13; a+=e; \
+   h-=a; f^=h>>8;  a+=e; \
 }
 
 void enc32(ub4 *block, ub4 *k1, ub4 *k2)
@@ -126,26 +122,43 @@ void enc32(ub4 *block, ub4 *k1, ub4 *k2)
   block[4]=e^k2[4]; block[5]=f^k2[5]; block[6]=g^k2[6]; block[7]=h^k2[7];
 }
 
+void dec32(ub4 *block, ub4 *k1, ub4 *k2)
+{
+  register ub4 a,b,c,d,e,f,g,h;
+  a=block[0]^k2[0]; b=block[1]^k2[1]; c=block[2]^k2[2]; d=block[3]^k2[3];
+  e=block[4]^k2[4]; f=block[5]^k2[5]; g=block[6]^k2[6]; h=block[7]^k2[7];
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  unmix32(a,b,c,d,e,f,g,h);
+  block[0]=a^k1[0]; block[1]=b^k1[1]; block[2]=c^k1[2]; block[3]=d^k1[3];
+  block[4]=e^k1[4]; block[5]=f^k1[5]; block[6]=g^k1[6]; block[7]=h^k1[7];
+}
+
 static void *cipher_thread( void *parameter )
 {
-    char   *data = NULL;
-    int     test, blk, tim, num, idx, end, i;
-    long    time_ini, time_end, time_op;
+    char           *data = NULL;
+    int             test, blk, tim, num, idx, end, i;
+    long            time_ini, time_end, time_op;
+    block_t        *block;
+    int             recved;
+    unsigned long   src;
     // Cipher keys
-    ub4     k1[8]={0,0,0,0,0,0,0,0}, k2[8]={0,0,0,0,0,0,0,0};
+    ub4             k1[8]={0,0,0,0,0,0,0,0}, k2[8]={0,0,0,0,0,0,0,0};
 
     printf("%s CIPHER thread started...\n", RT_DEBUG_ARCH);
     
     // Execute multiple times this test
     for( test=0; test<TEST_NUM; test++ )
     {
-        // Unlock main reader thread on other core to start reading
-        for( i=0; i<NUM_BLOCKS; i++ )
-        {
-            sem_post( &global_read_sem );
-        } //endfor
-        printf("+");
-        
         // Read file in blocks and queue them to be ciphered by a consumer thread
         blk = 0;
         tim = 0;
@@ -158,30 +171,36 @@ static void *cipher_thread( void *parameter )
         while( 1 )
         {
             // Wait for a ciphered block and get (in exclusive mode) a new block to be used for reading
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
-            printf("%s Waiting for a new block to be ciphered [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Waiting for a new block to be ciphered [%d] Total count [%d]\n", RT_DEBUG_ARCH, idx, blk);
 #endif
-            sem_wait( &global_cipher_sem );
+#endif
+            //sem_wait( &global_cipher_sem );  // POSIX IPC mech to be compared
+            recved = 0;
+            rpmsg_queue_recv_nocopy( my_rpmsg, cipher_q, &src, (void *) &block, &recved, RL_BLOCK );
 
             // Do internal checks
-            pthread_mutex_lock( &global_mutex );
-            if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered != 0) )
+            //pthread_mutex_lock( &global_mutex );
+            if( (block->is_read == 0) || (block->is_ciphered != 0) )
             {
                 printf("%s Internal error while ciphering block...\n", RT_DEBUG_ARCH);
                 return NULL;
             } //endif
-            data = global_queue[idx].block;
-            end  = global_queue[idx].is_last;
-            pthread_mutex_unlock( &global_mutex );
+            data = block->block;
+            end  = block->is_last;
+            //pthread_mutex_unlock( &global_mutex );
             
             // Cipher block
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
-            printf("%s Ciphering block [%d]\n", RT_DEBUG_ARCH, blk);
+            printf("%s Ciphering block [%d]\n", RT_DEBUG_ARCH, idx);
 #else
             printf("C");
 #endif
+#endif
             time_ini = rt_hw_usec_get();
-            for( i=0; i<BLOCK_SIZE>>5; i++ )
+            for( i=0; i<global_bsize>>5; i++ )
             {
 #ifdef DO_DECIPHER
                 dec32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
@@ -191,18 +210,22 @@ static void *cipher_thread( void *parameter )
                 enc32( (ub4 *)&(((char *)data)[i<<5]), k1, k2 );
 #endif
             } //endfor
-            num += BLOCK_SIZE;
+            num += global_bsize;
             time_end = rt_hw_usec_get();
             time_op  = time_end - time_ini;
 
             // Mark block as ciphered, and move semaphore to let the writer thread to run
+#ifdef VERBOSE
 #ifdef TRACE_LOOP
-            printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, blk);
+            printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, idx);
 #endif
-            pthread_mutex_lock( &global_mutex );
-            global_queue[idx].is_ciphered = 1;
-            pthread_mutex_unlock( &global_mutex );
-            sem_post( &global_write_sem );
+#endif
+            //pthread_mutex_lock( &global_mutex );
+            block->is_ciphered = 1;
+            //pthread_mutex_unlock( &global_mutex );
+            //sem_post( &global_write_sem );  // POSIX IPC mech to be compared
+            src = 0;
+            rpmsg_lite_send_nocopy( my_rpmsg, write_ept, src, (void *) &block, sizeof(block_t *) );
 
             // Save timings
             if( time_op > 0 )  // Sometimes rt_hw_usec_get() takes an earlier tick (it's not IRQ protected)
@@ -214,7 +237,7 @@ static void *cipher_thread( void *parameter )
             } //endif
 
             // Increase index
-            idx = (idx + 1) % NUM_BLOCKS;
+            idx = (idx + 1) % global_nblocks;
             blk++;
 
             // Check for end condition (after unlocking SDCARD writer thread)
@@ -226,17 +249,22 @@ static void *cipher_thread( void *parameter )
 
         // Wait some seconds before starting a new test
         //printf("\n%s Cipher thread: %d bytes ciphered\n", RT_DEBUG_ARCH, num);
-        sleep(2);  
     } //endfor
     
     // Finish thread
+    mdelay( 1000 );
     printf("%s CIPHER thread finished...\n", RT_DEBUG_ARCH);
 
     // Report all timing
-    sleep(3); printf("\n");
+    mdelay( 2000 );
+    time_ini = rt_hw_usec_get();
+    time_end = rt_hw_usec_get();
+    //printf("\n\n%s Error in measures (in usecs): %ld\n", RT_DEBUG_ARCH, time_end-time_ini);
+
+    printf("\n%s ----------------------------- TIMING REPORT (usecs) -----------------------------\n", RT_DEBUG_ARCH);
     for( idx=0; idx<TEST_NUM; idx++ )
     {
-        printf("%s   TEST #%d : OPS [%02d] ---                   --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
+        printf("%s   TEST #%02d : OPS [%02d] --- CMIN [%8ld] CMED [%8ld] CMAX [%8ld]\n", 
                RT_DEBUG_ARCH, idx, blk,
                time_cipher[idx][TIME_MIN], time_cipher[idx][TIME_MEDIUM], time_cipher[idx][TIME_MAX] );
     } //endfor
@@ -255,11 +283,15 @@ int main( int argc, char **argv )
     platform_init();
     //env_init();  // Called from 'rpmsg_lite_remote_init()'
     my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
-    ctrl_q   = rpmsg_queue_create( my_rpmsg );
-    ctrl_ept = rpmsg_lite_create_ept( my_rpmsg, TC_LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, ctrl_q );
+    
+    // Create RPMSG_LITE endpoints and queues
+    cipher_q   = rpmsg_queue_create( my_rpmsg );
+    cipher_ept = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_CIPHER_ADDR, rpmsg_queue_rx_cb, cipher_q );
+    write_q    = rpmsg_queue_create( my_rpmsg );
+    write_ept  = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_WRITE_ADDR, rpmsg_queue_rx_cb, write_q );
     
     // Init shared inter-architecture IPC objects
-    sem_init( &global_cipher_sem, 1, 1 );  sem_wait( &global_cipher_sem );
+    //sem_init( &global_cipher_sem, 1, 0 );
 
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );

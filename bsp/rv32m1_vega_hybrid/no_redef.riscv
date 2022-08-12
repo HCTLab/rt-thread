@@ -4,3 +4,5 @@ riscv___data_end__                      __data_end__
 riscv___bss_start__                     __bss_start__
 riscv___bss_end__                       __bss_end__
 riscv___heap_start                      __heap_start
+riscv_global_nblocks                    global_nblocks
+riscv_global_bsize                      global_bsize

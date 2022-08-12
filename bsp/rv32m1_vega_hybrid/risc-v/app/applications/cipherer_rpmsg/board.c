@@ -35,6 +35,7 @@
 #define BOOT_FLAG                0x01U
 #define MAX_GATES                16
 
+
 void APP_InitDomain(void)
 {
     /*
@@ -172,48 +173,45 @@ void APP_DeinitDomain(void)
     XRDC_SetGlobalValid(XRDC, false);
 }
 
-void LPIT0_IRQHandler(void)
-{
-    rt_tick_increase();
-
-    SystemClearSystickFlag();
-}
-
 static uint32_t  tick_max_count   = 0L;
 static uint32_t  tick_max_count_o = 0L;
+
+void LPIT0_IRQHandler(void)
+{
+    // Since rt_tick_increase() might reschedule, clear ISR flag now
+    SystemClearSystickFlag();
+    
+    // Call RTOS and do scheduling when needed
+    rt_tick_increase();
+}
 
 int rt_hw_systick_init(void)
 {
     CLOCK_SetIpSrc( kCLOCK_Lpit0, kCLOCK_IpSrcFircAsync );
 
-    // Note: Use the same time base for all cores (==LPIT0)
     tick_max_count   = ((uint32_t) CLOCK_GetIpFreq( kCLOCK_Lpit0 ) / RT_TICK_PER_SECOND);
     tick_max_count_o = tick_max_count / 100;
 
     SystemSetupSystick( RT_TICK_PER_SECOND, 0 );  // 0 = Top priority
     SystemClearSystickFlag();
-
+    
     return 0;
 }
 
 long rt_hw_usec_get(void)
 {
-    register long       usec = 0L;
-    register uint32_t   count1, count2;
+    register long       usec;
+    register uint32_t   count1=0, count2=0;
     //static   long       last_usec  = 0;
     //register uint32_t   last_count = 0x0FFFFFFF;
-
+    
     // Get current usecs from first core tick counter
-    // Note: Use the same time base for all cores (==LPIT0)
     // Note: Read channel 0 for SYSTEM TICK counter, please refer to system_RV32M1_xxx.c
     count1 = LPIT_GetCurrentTimerCount( LPIT0, 0 );
-
-#ifdef RT_USING_SMP    
-    usec   = (long) rt_cpu_index(0)->tick;
+    usec   = (long) rt_tick_get();
     count2 = LPIT_GetCurrentTimerCount( LPIT0, 0 );
-    if( count2 > count1 ) { usec = (long) rt_cpu_index(0)->tick; count1 = count2; }
+    if( count2 > count1 ) { usec = (long) rt_tick_get(); count1=count2; }
     usec   = usec * (1000000L/RT_TICK_PER_SECOND);
-#endif
 
     /* Timer integrity tests -> They should never trigger
     if( count1 > tick_max_count )  // Usually TVAL=0x752FF for 10ms@40Mhz
@@ -317,6 +315,14 @@ void rt_hw_cpu_shutdown()
 
 void rt_hw_us_delay( rt_uint32_t us )
 {
+#if 1
+    long  stick, etick;
+    stick = rt_tick_get();
+    etick = stick + (((long) us*RT_TICK_PER_SECOND) / 1000000L);
+    while( rt_tick_get() < etick );
+#else
+    rt_thread_sleep( ((long)us*RT_TICK_PER_SECOND) / 1000000L );
+#endif
 }
 
 //#define HYBRID_DEBUG

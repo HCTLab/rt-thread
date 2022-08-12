@@ -32,7 +32,7 @@
 #define  MAX_NUM_BLOCKS         16
 
 // Define the number of block and the block size on each test
-// Number of blocks being read/ciphered/written simultaneously (== number of r/c/w operations in parallel)
+// Number of blocks being read/ciphered/written before locking each thread (and wait for new data)
 #define  KB                     8
 #define  NUM_BLOCKS            {8        ,4        ,2        ,1        ,8        ,4        ,2        ,1        }
 #define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
@@ -87,8 +87,6 @@ block_t                         global_queue[ MAX_NUM_BLOCKS ];
 volatile int                    global_nblocks;
 volatile int                    global_bsize;
 
-extern int                      measure_ticks;  //(JAAS) Internal checks
-
 
 static void *sdcard_reader_thread( void *parameter )
 {
@@ -127,8 +125,7 @@ static void *sdcard_reader_thread( void *parameter )
         global_bsize      = bsizes [ test ];
         global_preemptive = preempt[ test ];
         
-        // Prepare the number of parallel operations by initializing the value of the 'read' semaphore
-        // (which locks thread when maximum number of operations are reached)
+        // Prepare the number of blocks which can be read before locking the thread.
         while( sem_trywait( &global_read_sem ) == 0 );
         for( i=0; i<global_nblocks; i++ )  sem_post( &global_read_sem ); 
        
