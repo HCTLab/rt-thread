@@ -284,7 +284,13 @@ static void *sdcard_writer_thread( void *parameter )
 #endif
             sem_wait( &global_write_sem );
 
+            // Do internal checks
             pthread_mutex_lock( &global_mutex );
+            if( (block->is_read == 0) || (block->is_ciphered == 0) )
+            {
+                printf("%s Internal error while writing block...\n", RT_DEBUG_ARCH);
+                return NULL;
+            } //endif
             data = global_queue[idx].block;
             end  = global_queue[idx].is_last;
             pthread_mutex_unlock( &global_mutex );

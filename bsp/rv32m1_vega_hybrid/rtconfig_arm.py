@@ -3,8 +3,8 @@ import os
 # toolchains options
 CROSS_TOOL  ='gcc'
 ARCH        ='arm'
-CPU         ='cortex-m0plus'
-#CPU         ='cortex-m4'
+CPU         ='cortex-m0plus'    # Used for -mcpu param
+#-DCPU_RV32M1_cm0plus           # Required by 'fsl_device_registers.h'
 
 # core to be use
 USE_CORE    ='CORE_M0'
@@ -57,7 +57,7 @@ if PLATFORM == 'gcc':
     DEVICE = ' -mcpu=' + CPU + ' -mthumb -ffunction-sections -Wall'
     if USE_CORE == 'CORE_M4':
         DEVICE += ' -mfpu=fpv4-sp-d16 -mfloat-abi=softfp'
-    CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH -DCPU_ARM'
+    CFLAGS = DEVICE + ' -I$BSP_ROOT -I$ARCH -DCPU_ARM -DCPU_RV32M1_cm0plus'
     AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -Wa,-mimplicit-it=thumb -I$BSP_ROOT -I$ARCH'
     #AFLAGS = ' -c' + DEVICE + ' -x assembler-with-cpp -I$BSP_ROOT -I$ARCH'
     LFLAGS = ''

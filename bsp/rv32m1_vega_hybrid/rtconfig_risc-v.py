@@ -3,7 +3,8 @@ import os
 # toolchains options
 CROSS_TOOL  ='gcc'
 ARCH        ='risc-v'
-CPU         ='rv32m1'
+CPU         ='rv32m1'           # Used for -mcpu param
+#-DCPU_RV32M1_ri5cy             # Required by 'fsl_device_registers.h'
 
 if os.getenv('REDEF'):
     REDEF = os.getenv('REDEF')
@@ -52,7 +53,7 @@ if PLATFORM == 'gcc':
 
     #DEVICE  = ' -march=rv32imc -mabi=ilp32'
     DEVICE  = ''
-    CFLAGS  = DEVICE + ' -fno-builtin -fno-exceptions -ffunction-sections -I$BSP_ROOT -I$ARCH -DCPU_RISCV'
+    CFLAGS  = DEVICE + ' -fno-builtin -fno-exceptions -ffunction-sections -I$BSP_ROOT -I$ARCH -DCPU_RISCV -DCPU_RV32M1_ri5cy'
     AFLAGS  = ' -c' + DEVICE + ' -x assembler-with-cpp -I$BSP_ROOT -I$ARCH'
     LINK_SCRIPT = 'hybrid.lds'
     LFLAGS  = ''

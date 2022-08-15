@@ -33,24 +33,22 @@
 
 #define  VERBOSE
 //#define  TRACE_LOOP
-#define  TEST_NUM                   8
+#define  TEST_NUM                   4
 #define  MAX_NUM_BLOCKS             16
 
 // Define the number of block and the block size on each test
 // Number of blocks being read/ciphered/written before locking each thread (and wait for new data)
 #define  KB                         8
-#define  NUM_BLOCKS                {8        ,4        ,2        ,1        ,8        ,4        ,2        ,1        }
-#define  BLOCK_SIZE                {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
+#define  NUM_BLOCKS                {8        ,4        ,2        ,1        }
+#define  BLOCK_SIZE                {(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
 
 #define  TIME_MIN                   0
 #define  TIME_MEDIUM                1
 #define  TIME_MAX                   2
 #define  TIME_TYPES                 3
 
-#define  LOCAL_EPT_CIPHER_ADDR      30
-#define  LOCAL_EPT_WRITE_ADDR       31
-#define  REMOTE_EPT_CIPHER_ADDR     40
-#define  REMOTE_EPT_WRITE_ADDR      41
+#define  LOCAL_EPT_ADDR             30
+#define  REMOTE_EPT_ADDR            40
 
 // External non-declared functions/variables
 extern long  rt_hw_usec_get(void);
@@ -86,10 +84,8 @@ static int                      nwops  [TEST_NUM];
 // RPMSG_LITE objects
 void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
-struct rpmsg_lite_endpoint     *cipher_ept;
-rpmsg_queue_handle              cipher_q;
-struct rpmsg_lite_endpoint     *write_ept;
-rpmsg_queue_handle              write_q;
+struct rpmsg_lite_endpoint     *rpmsg_ept;
+rpmsg_queue_handle              rpmsg_q;
 void                           *tx_buf[ TEST_NUM ];
 
 // Local architecture MUTEX and queue
@@ -112,7 +108,7 @@ static void *sdcard_reader_thread( void *parameter )
     static int      first_block;
     block_t        *block;
     int             error, recved;
-    unsigned long   src;
+    unsigned long   dst;
     
     printf("%s SDCARD reader thread started (%s)...\n", RT_DEBUG_ARCH, filename);
     mdelay( 1000 );
@@ -235,10 +231,10 @@ static void *sdcard_reader_thread( void *parameter )
             
             // Notify cipherer thread (awake it!) that a block is ready to be ciphered
             //sem_post( &global_cipher_sem );  // POSIX IPC mech to be compared
-            src = 0;
+            dst = REMOTE_EPT_ADDR;
             block = &local_queue[idx];
             memcpy( tx_buf[idx], &block, sizeof(block) );
-            error = rpmsg_lite_send_nocopy( my_rpmsg, cipher_ept, src, tx_buf[idx], sizeof(block) );
+            error = rpmsg_lite_send_nocopy( my_rpmsg, rpmsg_ept, dst, tx_buf[idx], sizeof(block) );
             
             // Increase index
             idx = (idx + 1) % global_nblocks;
@@ -267,7 +263,7 @@ static void *sdcard_writer_thread( void *parameter )
     FILE           *file;
     int             test, blk, tim, num, idx, len, end;
     long            time_ini, time_end, time_op;
-    block_t        *block;
+    block_t        *block, **rx_buf;
     int             recved;
     unsigned long   src;
 
@@ -303,9 +299,21 @@ static void *sdcard_writer_thread( void *parameter )
 #endif
             //sem_wait( &global_write_sem );  // POSIX IPC mech to be compared
             recved = 0;
-            rpmsg_queue_recv_nocopy( my_rpmsg, write_q, &src, (void *) &block, &recved, RL_BLOCK );
+            rpmsg_queue_recv_nocopy( my_rpmsg, rpmsg_q, &src, (void *) &rx_buf, &recved, RL_BLOCK );
+            if( recved != sizeof(block) )
+            {
+                printf("%s Internal error while receiving msg...\n", RT_DEBUG_ARCH);
+                return NULL;
+            } //endif
+            block = *rx_buf;
 
-            //pthread_mutex_lock( &local_mutex );
+            // Do internal checks
+            //pthread_mutex_lock( &global_mutex );
+            if( (block->is_read == 0) || (block->is_ciphered == 0) )
+            {
+                printf("%s Internal error while writing block...\n", RT_DEBUG_ARCH);
+                return NULL;
+            } //endif
             data = block->block;
             end  = block->is_last;
             //pthread_mutex_unlock( &local_mutex );
@@ -409,21 +417,19 @@ int main( int argc, char **argv )
     unsigned long           size, i;
     
     // Program starts!
-    printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread started! ", RT_DEBUG_ARCH );
     
     // Init RPMSG_LITE OpenAMP env
-    platform_init();
-    //env_init();  // Called from 'rpmsg_lite_remote_init()'
+    sleep(2); // Wait other core to call 'rpmsg_lite_remote_init()' before this core
     my_rpmsg = rpmsg_lite_master_init( rpmsg_lite_base, BOARD_SHARED_MEMORY_SIZE, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
     
     // Create RPMSG_LITE endpoints and queues
-    cipher_q   = rpmsg_queue_create( my_rpmsg );
-    cipher_ept = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_CIPHER_ADDR, rpmsg_queue_rx_cb, cipher_q );
-    write_q    = rpmsg_queue_create( my_rpmsg );
-    write_ept  = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_WRITE_ADDR, rpmsg_queue_rx_cb, write_q );
+    rpmsg_q   = rpmsg_queue_create( my_rpmsg );
+    rpmsg_ept = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, rpmsg_q );
     
     // Wait till RPMSG is ready
     while( !rpmsg_lite_is_link_up(my_rpmsg) ) { printf("."); sleep(1); }
+    printf("\n");
 
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;

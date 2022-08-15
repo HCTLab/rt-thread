@@ -84,13 +84,13 @@ static void mu_isr(MU_Type *base)
 }
 
 #if defined(FSL_FEATURE_MU_SIDE_A)
-int MUA_IRQHandler()
+int MCMGR_MUA_IRQHandler()  //(JAAS) Use this name instead MUA_IRQHandler() to avoid overloading
 {
     mu_isr(MUA);
     return 0;
 }
 #elif defined(FSL_FEATURE_MU_SIDE_B)
-int MUB_IRQHandler()
+int MCMGR_MUB_IRQHandler()  //(JAAS) Use this name instead MUB_IRQHandler() to avoid overloading
 {
     mu_isr(MUB);
     return 0;

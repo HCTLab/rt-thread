@@ -35,10 +35,8 @@
 #define  TIME_MAX                   2
 #define  TIME_TYPES                 3
 
-#define  LOCAL_EPT_CIPHER_ADDR      31
-#define  LOCAL_EPT_WRITE_ADDR       30
-#define  REMOTE_EPT_CIPHER_ADDR     41
-#define  REMOTE_EPT_WRITE_ADDR      40
+#define  LOCAL_EPT_ADDR             40
+#define  REMOTE_EPT_ADDR            30
 
 #define  printf                     rt_kprintf
 
@@ -65,10 +63,8 @@ static long                     time_cipher[ TEST_NUM ][ TIME_TYPES ];
 // RPMSG_LITE objects
 void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
-struct rpmsg_lite_endpoint     *cipher_ept;
-rpmsg_queue_handle              cipher_q;
-struct rpmsg_lite_endpoint     *write_ept;
-rpmsg_queue_handle              write_q;
+struct rpmsg_lite_endpoint     *rpmsg_ept;
+rpmsg_queue_handle              rpmsg_q;
 void                           *tx_buf[ TEST_NUM ];
 
 extern int                      global_nblocks;
@@ -149,9 +145,9 @@ static void *cipher_thread( void *parameter )
     char           *data = NULL;
     int             test, blk, tim, num, idx, end, i;
     long            time_ini, time_end, time_op;
-    block_t        *block;
+    block_t        *block, **rx_buf;
     int             recved;
-    unsigned long   src;
+    unsigned long   src, dst;
     // Cipher keys
     ub4             k1[8]={0,0,0,0,0,0,0,0}, k2[8]={0,0,0,0,0,0,0,0};
 
@@ -179,7 +175,13 @@ static void *cipher_thread( void *parameter )
 #endif
             //sem_wait( &global_cipher_sem );  // POSIX IPC mech to be compared
             recved = 0;
-            rpmsg_queue_recv_nocopy( my_rpmsg, cipher_q, &src, (void *) &block, &recved, RL_BLOCK );
+            rpmsg_queue_recv_nocopy( my_rpmsg, rpmsg_q, &src, (void *) &rx_buf, &recved, RL_BLOCK );
+            if( recved != sizeof(block) )
+            {
+                printf("%s Internal error while receiving msg...\n", RT_DEBUG_ARCH);
+                return NULL;
+            } //endif
+            block = *rx_buf;
 
             // Do internal checks
             //pthread_mutex_lock( &global_mutex );
@@ -225,8 +227,9 @@ static void *cipher_thread( void *parameter )
             block->is_ciphered = 1;
             //pthread_mutex_unlock( &global_mutex );
             //sem_post( &global_write_sem );  // POSIX IPC mech to be compared
-            src = 0;
-            rpmsg_lite_send_nocopy( my_rpmsg, write_ept, src, (void *) &block, sizeof(block_t *) );
+            dst = REMOTE_EPT_ADDR;
+            memcpy( tx_buf[idx], &block, sizeof(block) );
+            rpmsg_lite_send_nocopy( my_rpmsg, rpmsg_ept, dst, tx_buf[idx], sizeof(block) );
 
             // Save timings
             if( time_op > 0 )  // Sometimes rt_hw_usec_get() takes an earlier tick (it's not IRQ protected)
@@ -279,21 +282,18 @@ int main( int argc, char **argv )
     unsigned long           size, i;
 
     // Program starts!
-    printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread started! ", RT_DEBUG_ARCH );
 
     // Init RPMSG_LITE OpenAMP env
-    platform_init();
-    //env_init();  // Called from 'rpmsg_lite_remote_init()'
     my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
     
     // Create RPMSG_LITE endpoints and queues
-    cipher_q   = rpmsg_queue_create( my_rpmsg );
-    cipher_ept = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_CIPHER_ADDR, rpmsg_queue_rx_cb, cipher_q );
-    write_q    = rpmsg_queue_create( my_rpmsg );
-    write_ept  = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_WRITE_ADDR, rpmsg_queue_rx_cb, write_q );
+    rpmsg_q   = rpmsg_queue_create( my_rpmsg );
+    rpmsg_ept = rpmsg_lite_create_ept( my_rpmsg, LOCAL_EPT_ADDR, rpmsg_queue_rx_cb, rpmsg_q );
     
-    // Init shared inter-architecture IPC objects
-    //sem_init( &global_cipher_sem, 1, 0 );
+    // Wait till RPMSG is ready
+    while( !rpmsg_lite_is_link_up(my_rpmsg) ) { printf("."); sleep(1); }
+    printf("\n");
 
     // Alloc RPMSG Lite messages that can transmitted
     for( i=0; i<TEST_NUM; i++ )
@@ -306,6 +306,9 @@ int main( int argc, char **argv )
         } //endif
     } //endfor
     
+    // Init shared inter-architecture IPC objects
+    //sem_init( &global_cipher_sem, 1, 0 );
+
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;

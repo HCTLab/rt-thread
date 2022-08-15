@@ -12,6 +12,7 @@
 #include "board.h"
 #include "drv_uart.h"
 
+#include "mcmgr.h"
 #include "pin_mux.h"
 #include "clock_config.h"
 
@@ -92,6 +93,51 @@ void LPIT1_IRQHandler( void )
     rt_tick_increase();
 }
 
+/* Alternatic MU ISR handling...
+#define MU_ISR_FLAG_BASE    (20)
+#define MU_ISR_COUNT        (12)
+
+void MUB_IRQHandler(void)
+{
+    uint32_t flags;
+    int i;
+
+    flags = MU_GetStatusFlags( APP_MU );
+    
+#if (defined(FSL_FEATURE_MU_HAS_RESET_INT) && FSL_FEATURE_MU_HAS_RESET_INT)
+    // The other core reset assert interrupt pending
+    if( flags & kMU_ResetAssertInterruptFlag )
+    {
+        MU_ClearStatusFlags( APP_MU, kMU_ResetAssertInterruptFlag );
+        return;
+    } //endif
+#endif
+
+    for( i=MU_ISR_FLAG_BASE; i<(MU_ISR_FLAG_BASE+MU_ISR_COUNT); i++ )
+    {
+        if( flags & (1 << i) )
+        {
+            MU_ClearStatusFlags( APP_MU, (1 << i) );
+
+            if( flags & kMU_GenInt0Flag )
+            {
+                // Call MCMGR ISR
+                mu_isr(MUB);
+            } //endif
+        } //endif
+    } //endfor
+}
+*/
+
+// MUB ISR handler for MCMGR
+extern int MCMGR_MUB_IRQHandler();
+
+int MUB_IRQHandler()
+{
+    MCMGR_MUB_IRQHandler();
+    return 0;
+}
+
 static uint32_t  tick_max_count   = 0L;
 static uint32_t  tick_max_count_o = 0L;
 
@@ -168,6 +214,7 @@ void rt_hw_board_init( void )
 {
     BOARD_InitPins_Core1();
 
+    // Init MU
     MU_Init( APP_MU );
     MU_EnableInterrupts( APP_MU, kMU_GenInt0InterruptEnable );
     MU_SetFlags( APP_MU, BOOT_FLAG );
@@ -175,11 +222,15 @@ void rt_hw_board_init( void )
     // Set interrupt priority.
     NVIC_SetPriority( APP_MU_IRQ, (1 << __NVIC_PRIO_BITS) - 1);
     NVIC_EnableIRQ( APP_MU_IRQ );
+    
+    // Init MCMGR
+    MCMGR_EarlyInit();
+    MCMGR_Init();
 
     // Move leds during a small delay to indicate that core is booting...
     //LPUART_WriteByte(LPUART0, '.');
     LED1_OFF();
-    for( int i=0; i<1000000; i++ )  { }
+    for( int i=0; i<100000; i++ )  { }
     LED1_ON();
 
     /* Initialize intercore AMP syncronization

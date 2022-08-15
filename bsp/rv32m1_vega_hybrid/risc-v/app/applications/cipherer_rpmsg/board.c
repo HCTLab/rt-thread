@@ -15,6 +15,7 @@
 #include "drv_uart.h"
 #include "drv_sdcard.h"
 
+#include "mcmgr.h"
 #include "pin_mux.h"
 #include "clock_config.h"
 
@@ -30,7 +31,7 @@
 // MUA/MUB defined at RV32M1_ri5cy.h
 #define APP_MU                   MUA
 #define APP_MU_IRQ               MUA_IRQn
-#define APP_SEMA42               SEMA420
+
 #define APP_CORE1_BOOT_MODE      kMU_CoreBootFromDflashBase
 #define BOOT_FLAG                0x01U
 #define MAX_GATES                16
@@ -325,10 +326,50 @@ void rt_hw_us_delay( rt_uint32_t us )
 #endif
 }
 
-//#define HYBRID_DEBUG
-#define HYBRID_DEBUG_MIN_GATE       2
-#define OBJ_APP_SEMA42              SEMA420             // HW instance
-#define OBJ_LOCK_CORE               0U                  // Core 0 (RI5CY) locking identifier
+/* Alternatic MU ISR handling...
+#define MU_ISR_FLAG_BASE    (20)
+#define MU_ISR_COUNT        (12)
+
+void MUA_IRQHandler(void)
+{
+    uint32_t flags;
+    int i;
+
+    flags = MU_GetStatusFlags( APP_MU );
+    
+#if (defined(FSL_FEATURE_MU_HAS_RESET_INT) && FSL_FEATURE_MU_HAS_RESET_INT)
+    // The other core reset assert interrupt pending
+    if( flags & kMU_ResetAssertInterruptFlag )
+    {
+        MU_ClearStatusFlags( APP_MU, kMU_ResetAssertInterruptFlag );
+        return;
+    } //endif
+#endif
+
+    for( i=MU_ISR_FLAG_BASE; i<(MU_ISR_FLAG_BASE+MU_ISR_COUNT); i++ )
+    {
+        if( flags & (1 << i) )
+        {
+            MU_ClearStatusFlags( APP_MU, (1 << i) );
+
+            if( flags & kMU_GenInt0Flag )
+            {
+                // Call MCMGR ISR
+                mu_isr(MUA);
+            } //endif
+        } //endif
+    } //endfor
+}
+*/
+
+// MUA ISR handler for MCMGR
+extern int MCMGR_MUA_IRQHandler();
+
+int MUA_IRQHandler()
+{
+    MCMGR_MUA_IRQHandler();
+    return 0;
+}
 
 void rt_hw_board_init(void)
 {
@@ -336,27 +377,30 @@ void rt_hw_board_init(void)
     BOARD_BootClockRUN();
     BOARD_InitLedPin();
     LED1_INIT( LOGIC_LED_ON );
-
+    
+    // Init System Clock
     CLOCK_InitLpFll( &g_appScgLpFllConfig_BOARD_BootClockRUN );
 
     // Small delay (~3 secs) to wait for an external debug TAP connection
     for( int i=0; i<10000000; i++ )  { }
-
+    
+    // Init Domain
     APP_InitDomain();
 
+    // Init MU
     MU_Init( APP_MU );
     MU_EnableInterrupts( APP_MU, kMU_GenInt0InterruptEnable );
     
     EVENT_SetIRQPriority( APP_MU_IRQ, 0 );  // 0 = Top priority (same as TICK timer)
     EnableIRQ( APP_MU_IRQ );
     
-    SEMA42_Init( APP_SEMA42 );
-    SEMA42_ResetAllGates( APP_SEMA42 );
-
-    /* RFU
-    INTMUX_Init(INTMUX0);
+    // Init INTMUX
+    INTMUX_Init( INTMUX0 );
     INTMUX_EnableInterrupt( INTMUX0, 0, PORTC_IRQn );
-    */
+    
+    // Init MCMGR
+    MCMGR_EarlyInit();
+    MCMGR_Init();
 
     /* Initialize intercore AMP syncronization
     rt_object_trytake_sethook( rt_hw_object_trytake );
@@ -381,7 +425,6 @@ void rt_hw_board_init(void)
     MU_BootOtherCore( APP_MU, APP_CORE1_BOOT_MODE );
     // Wait till Core 1 will boot
     while( BOOT_FLAG != MU_GetFlags(APP_MU) ) { }
-    //while(1);  // Only ARM runs
 
 #ifdef RT_USING_CONSOLE
     rt_console_set_device( RT_CONSOLE_DEVICE_NAME );
