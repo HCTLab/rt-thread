@@ -20,10 +20,11 @@
 #include <semaphore.h>
 #include <delay.h>
 
-#define  VERBOSE
+//#define  VERBOSE
 //#define  TRACE_LOOP
+//#define  PROTECT_GLOBAL_QUEUE     // Uncomment to obtain an equivalent algorith to non-hybrid app
 #define  TEST_NUM               8
-#define  MAX_NUM_BLOCKS         16
+#define  MAX_NUM_BLOCKS         8
 
 #define  TIME_MIN               0
 #define  TIME_MEDIUM            1
@@ -53,7 +54,9 @@ static pthread_t                cthread;
 static long                     time_cipher[ TEST_NUM ][ TIME_TYPES ];
 
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
+#ifdef PROTECT_GLOBAL_QUEUE
 extern pthread_mutex_t          global_mutex;
+#endif
 
 extern sem_t                    global_read_sem;
 extern sem_t                    global_cipher_sem;
@@ -167,7 +170,9 @@ static void *cipher_thread( void *parameter )
             sem_wait( &global_cipher_sem );
 
             // Do internal checks
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_lock( &global_mutex );
+#endif
             if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered != 0) )
             {
                 printf("%s Internal error while ciphering block...\n", RT_DEBUG_ARCH);
@@ -175,7 +180,9 @@ static void *cipher_thread( void *parameter )
             } //endif
             data = global_queue[idx].block;
             end  = global_queue[idx].is_last;
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_unlock( &global_mutex );
+#endif
             
             // Cipher block
 #ifdef VERBOSE
@@ -206,9 +213,13 @@ static void *cipher_thread( void *parameter )
             printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, idx);
 #endif
 #endif
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_lock( &global_mutex );
+#endif
             global_queue[idx].is_ciphered = 1;
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_unlock( &global_mutex );
+#endif
             sem_post( &global_write_sem );
 
             // Save timings
@@ -261,7 +272,7 @@ int main( int argc, char **argv )
     pthread_attr_t          attr;
 
     // Program starts!
-    printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread started!  ----------- HYBRID IMPLEMENTATION -----------\n", RT_DEBUG_ARCH );
 
     // Init shared inter-architecture IPC objects
     sem_init( &global_cipher_sem, 1, 0 );

@@ -26,15 +26,16 @@
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
-#define  VERBOSE
+//#define  VERBOSE
 //#define  TRACE_LOOP
+//#define  PROTECT_GLOBAL_QUEUE     // Uncomment to obtain an equivalent algorith to non-hybrid app
 #define  TEST_NUM               8
-#define  MAX_NUM_BLOCKS         16
+#define  MAX_NUM_BLOCKS         8
 
 // Define the number of block and the block size on each test
 // Number of blocks being read/ciphered/written before locking each thread (and wait for new data)
 #define  KB                     8
-#define  NUM_BLOCKS            {8        ,4        ,2        ,1        ,8        ,4        ,2        ,1        }
+#define  NUM_BLOCKS            {4        ,3        ,2        ,1        ,4        ,3        ,2        ,1        }
 #define  BLOCK_SIZE            {(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
 #define  PREEMPTIVE            {1        ,1        ,1        ,1        ,0        ,0        ,0        ,0        }
 
@@ -76,7 +77,9 @@ static int                      nrops  [TEST_NUM];
 static int                      nwops  [TEST_NUM];
 
 // Hybrid MUTEX (used by both architectures) -> Only declared in ONE architecture
+#ifdef PROTECT_GLOBAL_QUEUE
 pthread_mutex_t                 global_mutex = PTHREAD_MUTEX_INITIALIZER;
+#endif
 
 sem_t                           global_read_sem;
 sem_t                           global_cipher_sem;
@@ -175,14 +178,18 @@ static void *sdcard_reader_thread( void *parameter )
             } //endif
             
             // Do internal checks (detect concurrent block usage)
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_lock( &global_mutex );
+#endif
             if( (global_queue[idx].is_read != 0) || (global_queue[idx].is_ciphered != 0) )
             {
                 printf("%s Internal error while reading file...\n", RT_DEBUG_ARCH);
                 return NULL;
             } //endif
             global_queue[idx].block = data;
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_unlock( &global_mutex );
+#endif
             
             // Read a block from file
 #ifdef VERBOSE
@@ -213,14 +220,17 @@ static void *sdcard_reader_thread( void *parameter )
             printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, idx);
 #endif
 #endif
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_lock( &global_mutex );
+#endif
             global_queue[idx].is_read = 1;
             if( (len != global_bsize) || feof(file) )
             {
                 global_queue[idx].is_last = 1;
             } //endif
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_unlock( &global_mutex );
-            
+#endif            
             // Notify cipherer thread (awake it!) that a block is ready to be ciphered
             sem_post( &global_cipher_sem );
             
@@ -285,16 +295,19 @@ static void *sdcard_writer_thread( void *parameter )
             sem_wait( &global_write_sem );
 
             // Do internal checks
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_lock( &global_mutex );
-            if( (block->is_read == 0) || (block->is_ciphered == 0) )
+#endif
+            if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered == 0) )
             {
                 printf("%s Internal error while writing block...\n", RT_DEBUG_ARCH);
                 return NULL;
             } //endif
             data = global_queue[idx].block;
             end  = global_queue[idx].is_last;
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_unlock( &global_mutex );
-            
+#endif            
             // Write block to file
 #ifdef VERBOSE
 #ifdef TRACE_LOOP
@@ -328,14 +341,18 @@ static void *sdcard_writer_thread( void *parameter )
             printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, idx);
 #endif
 #endif
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_lock( &global_mutex );
+#endif
             if( (global_queue[idx].is_read == 0) || (global_queue[idx].is_ciphered == 0) )
             {
                 printf("%s Internal error while writing file...\n", RT_DEBUG_ARCH);
                 return NULL;
             } //endif
             memset( &global_queue[idx], 0, sizeof(global_queue[idx]) );
+#ifdef PROTECT_GLOBAL_QUEUE
             pthread_mutex_unlock( &global_mutex );
+#endif
             sem_post( &global_read_sem );
 
             // Increase index
@@ -392,14 +409,17 @@ int main( int argc, char **argv )
     pthread_attr_t          attr;
     
     // Program starts!
-    printf( "%s Main thread started!\n", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread started!  ----------- HYBRID IMPLEMENTATION -----------\n", RT_DEBUG_ARCH );
+    sleep(2); // Small wait before starting
     
     // Init shared queue
     memset( global_queue, 0, sizeof(global_queue) );
     
     // Init shared inter-architecture IPC objects
     mattr = PTHREAD_MUTEX_RECURSIVE;
+#ifdef PROTECT_GLOBAL_QUEUE
     pthread_mutex_init( &global_mutex, &mattr );
+#endif
     sem_init( &global_read_sem,   1, 0 );  // It will be re-initialized by reader thread at the beginning of each test
     sem_init( &global_write_sem,  1, 0 );
     

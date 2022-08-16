@@ -31,15 +31,15 @@
 #define  SDCARD_PLAIN_FILE      "plain.dat"
 #define  SDCARD_CIPHER_FILE     "cipher.dat"
 
-#define  VERBOSE
+//#define  VERBOSE
 //#define  TRACE_LOOP
 #define  TEST_NUM                   4
-#define  MAX_NUM_BLOCKS             16
+#define  MAX_NUM_BLOCKS             8
 
 // Define the number of block and the block size on each test
 // Number of blocks being read/ciphered/written before locking each thread (and wait for new data)
 #define  KB                         8
-#define  NUM_BLOCKS                {8        ,4        ,2        ,1        }
+#define  NUM_BLOCKS                {4        ,3        ,2        ,1        }
 #define  BLOCK_SIZE                {(KB*1024),(KB*1024),(KB*1024),(KB*1024)}
 
 #define  TIME_MIN                   0
@@ -86,16 +86,14 @@ void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
 struct rpmsg_lite_endpoint     *rpmsg_ept;
 rpmsg_queue_handle              rpmsg_q;
-void                           *tx_buf[ TEST_NUM ];
+void                           *tx_buf[ MAX_NUM_BLOCKS ];
 
 // Local architecture MUTEX and queue
-//pthread_mutex_t                 local_mutex = PTHREAD_MUTEX_INITIALIZER;
+sem_t                           local_read_sem;
 block_t                         local_queue[ MAX_NUM_BLOCKS ];
 
-sem_t                           local_read_sem;
-
-volatile int                    global_nblocks;
-volatile int                    global_bsize;
+volatile int                    global_nblocks = 0;
+volatile int                    global_bsize   = 0;
 
 
 static void *sdcard_reader_thread( void *parameter )
@@ -134,8 +132,8 @@ static void *sdcard_reader_thread( void *parameter )
         mdelay( 2000 );
         
         // Configure TEST parameters
-        global_nblocks    = nblocks[ test ];
-        global_bsize      = bsizes [ test ];
+        global_nblocks = nblocks[ test ];
+        global_bsize   = bsizes [ test ];
         
         // Prepare the number of blocks which can be read before locking the thread.
         while( sem_trywait( &local_read_sem ) == 0 );
@@ -186,11 +184,9 @@ static void *sdcard_reader_thread( void *parameter )
                 return NULL;
             } //endif
             
-            // Get a new block from local queue
-            //pthread_mutex_lock( &local_mutex );
+            // Get a new block from local queue, reset it, and assign it allocated memory
             memset( &local_queue[idx], 0, sizeof(local_queue[idx]) );
             local_queue[idx].block = data;
-            //pthread_mutex_unlock( &local_mutex );
             
             // Read a block from file
 #ifdef VERBOSE
@@ -221,13 +217,11 @@ static void *sdcard_reader_thread( void *parameter )
             printf("%s Marking block [%d] as read\n", RT_DEBUG_ARCH, idx);
 #endif
 #endif
-            //pthread_mutex_lock( &local_mutex );
             local_queue[idx].is_read = 1;
             if( (len != global_bsize) || feof(file) )
             {
                 local_queue[idx].is_last = 1;
             } //endif
-            //pthread_mutex_unlock( &local_mutex );
             
             // Notify cipherer thread (awake it!) that a block is ready to be ciphered
             //sem_post( &global_cipher_sem );  // POSIX IPC mech to be compared
@@ -308,7 +302,6 @@ static void *sdcard_writer_thread( void *parameter )
             block = *rx_buf;
 
             // Do internal checks
-            //pthread_mutex_lock( &global_mutex );
             if( (block->is_read == 0) || (block->is_ciphered == 0) )
             {
                 printf("%s Internal error while writing block...\n", RT_DEBUG_ARCH);
@@ -316,7 +309,6 @@ static void *sdcard_writer_thread( void *parameter )
             } //endif
             data = block->block;
             end  = block->is_last;
-            //pthread_mutex_unlock( &local_mutex );
 
             // Write block to file
 #ifdef VERBOSE
@@ -351,14 +343,12 @@ static void *sdcard_writer_thread( void *parameter )
             printf("%s Marking block [%d] as written\n", RT_DEBUG_ARCH, idx);
 #endif
 #endif
-            //pthread_mutex_lock( &local_mutex );
             if( (block->is_read == 0) || (block->is_ciphered == 0) )
             {
                 printf("%s Internal error while writing file...\n", RT_DEBUG_ARCH);
                 return NULL;
             } //endif
             memset( block, 0, sizeof(local_queue[idx]) );
-            //pthread_mutex_unlock( &local_mutex );
             
             sem_post( &local_read_sem );
 
@@ -412,15 +402,14 @@ static void *sdcard_writer_thread( void *parameter )
 
 int main( int argc, char **argv )
 {
-    pthread_mutexattr_t     mattr;
     pthread_attr_t          attr;
     unsigned long           size, i;
     
     // Program starts!
-    printf( "\n%s Main thread started! ", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread started!  ----------- OpenAMP IMPLEMENTATION -----------\n", RT_DEBUG_ARCH );
+    sleep(2); // Wait other core to call 'rpmsg_lite_remote_init()' before this core
     
     // Init RPMSG_LITE OpenAMP env
-    sleep(2); // Wait other core to call 'rpmsg_lite_remote_init()' before this core
     my_rpmsg = rpmsg_lite_master_init( rpmsg_lite_base, BOARD_SHARED_MEMORY_SIZE, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
     
     // Create RPMSG_LITE endpoints and queues
@@ -432,14 +421,11 @@ int main( int argc, char **argv )
     printf("\n");
 
     // Init shared inter-architecture IPC objects
-    mattr = PTHREAD_MUTEX_RECURSIVE;
-    //pthread_mutex_init( &local_mutex, &mattr );
-    sem_init( &local_read_sem,   1, 0 );    // It will be re-initialized by reader thread at the beginning of each test
-    //sem_init( &global_write_sem,  1, 0 );
+    sem_init( &local_read_sem, 1, 0 );    // It will be re-initialized by reader thread at the beginning of each test
     memset( local_queue, 0, sizeof(local_queue) );
 
     // Alloc RPMSG Lite messages that can transmitted
-    for( i=0; i<TEST_NUM; i++ )
+    for( i=0; i<MAX_NUM_BLOCKS; i++ )
     {
         tx_buf[i] = rpmsg_lite_alloc_tx_buffer( my_rpmsg, &size, 0 );  // 0 == RL_NONBLOCK
         if( tx_buf[i] == NULL )
@@ -459,7 +445,7 @@ int main( int argc, char **argv )
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;
-    attr.stacksize = 4096;  // Define thread stack size
+    attr.stacksize = RT_MAIN_THREAD_STACK_SIZE;  // Define thread stack size (same stack as main function)
     attr.schedparam.sched_priority = RT_MAIN_THREAD_PRIORITY;
 
     pthread_create( &rdthread, &attr, sdcard_reader_thread, SDCARD_PLAIN_FILE );

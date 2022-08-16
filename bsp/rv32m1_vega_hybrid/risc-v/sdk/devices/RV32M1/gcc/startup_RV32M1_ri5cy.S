@@ -210,17 +210,20 @@ define_exception_entry LSU_Handler LSU_HandlerFunc
     .weak IllegalInstruction_HandlerFunc
     .type IllegalInstruction_HandlerFunc, %function
 IllegalInstruction_HandlerFunc:
+    csrr ra, 0x341  //(JAAS) Get address where exception was triggered
     j .
     .size IllegalInstruction_HandlerFunc, . - IllegalInstruction_HandlerFunc
 
     .weak Ecall_HandlerFunc
     .type Ecall_HandlerFunc, %function
 Ecall_HandlerFunc:
+    csrr ra, 0x341  //(JAAS) Get address where exception was triggered
     j .
     .size Ecall_HandlerFunc, . - Ecall_HandlerFunc
 
     .weak LSU_HandlerFunc
     .type LSU_HandlerFunc, %function
 LSU_HandlerFunc:
+    csrr ra, 0x341  //(JAAS) Get address where exception was triggered
     j .
     .size LSU_HandlerFunc, . - LSU_HandlerFunc

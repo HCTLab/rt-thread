@@ -387,7 +387,7 @@ void rt_schedule(void)
 
                 RT_OBJECT_HOOK_CALL(rt_scheduler_switch_hook, (current_thread));
 
-                //(JAAS) Scheduler lock should be release before switching
+                //(JAAS) Scheduler lock should be released before switching
                 //       and local interrupts enabled after switching
                 pcpu->scheduler_lock_nest--;
                 if (pcpu->scheduler_lock_nest == 0)

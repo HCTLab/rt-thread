@@ -16,9 +16,9 @@
 extern unsigned char __heap_start;
 
 #define RT_HW_HEAP_BEGIN            (void*)&__heap_start
-#define RT_HW_HEAP_END              (void*)(0x2001D000)
+#define RT_HW_HEAP_END              (void*)(0x20018000)
 #define BOARD_SHARED_MEMORY_BASE    (void*)(0x20020000)
-#define BOARD_SHARED_MEMORY_SIZE    0x10000
+#define BOARD_SHARED_MEMORY_SIZE    0xE000
 
 #define LOGIC_LED_ON 1U
 #define LOGIC_LED_OFF 0U

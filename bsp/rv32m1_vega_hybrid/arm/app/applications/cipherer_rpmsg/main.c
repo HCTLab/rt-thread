@@ -25,10 +25,10 @@
 #include "rpmsg_queue.h"
 #include "rpmsg_ns.h"
 
-#define  VERBOSE
+//#define  VERBOSE
 //#define  TRACE_LOOP
-#define  TEST_NUM                   8
-#define  MAX_NUM_BLOCKS             16
+#define  TEST_NUM                   4
+#define  MAX_NUM_BLOCKS             8
 
 #define  TIME_MIN                   0
 #define  TIME_MEDIUM                1
@@ -65,7 +65,7 @@ void                           *rpmsg_lite_base = BOARD_SHARED_MEMORY_BASE;
 struct rpmsg_lite_instance     *my_rpmsg = NULL;
 struct rpmsg_lite_endpoint     *rpmsg_ept;
 rpmsg_queue_handle              rpmsg_q;
-void                           *tx_buf[ TEST_NUM ];
+void                           *tx_buf[ MAX_NUM_BLOCKS ];
 
 extern int                      global_nblocks;
 extern int                      global_bsize;
@@ -178,21 +178,19 @@ static void *cipher_thread( void *parameter )
             rpmsg_queue_recv_nocopy( my_rpmsg, rpmsg_q, &src, (void *) &rx_buf, &recved, RL_BLOCK );
             if( recved != sizeof(block) )
             {
-                printf("%s Internal error while receiving msg...\n", RT_DEBUG_ARCH);
+                printf("%s Internal error while receiving message [%d]...\n", RT_DEBUG_ARCH, recved);
                 return NULL;
             } //endif
             block = *rx_buf;
 
             // Do internal checks
-            //pthread_mutex_lock( &global_mutex );
             if( (block->is_read == 0) || (block->is_ciphered != 0) )
             {
-                printf("%s Internal error while ciphering block...\n", RT_DEBUG_ARCH);
+                printf("%s Internal error while ciphering block [0x%X]...\n", RT_DEBUG_ARCH, block);
                 return NULL;
             } //endif
             data = block->block;
             end  = block->is_last;
-            //pthread_mutex_unlock( &global_mutex );
             
             // Cipher block
 #ifdef VERBOSE
@@ -223,9 +221,7 @@ static void *cipher_thread( void *parameter )
             printf("%s Marking block [%d] as ciphered\n", RT_DEBUG_ARCH, idx);
 #endif
 #endif
-            //pthread_mutex_lock( &global_mutex );
             block->is_ciphered = 1;
-            //pthread_mutex_unlock( &global_mutex );
             //sem_post( &global_write_sem );  // POSIX IPC mech to be compared
             dst = REMOTE_EPT_ADDR;
             memcpy( tx_buf[idx], &block, sizeof(block) );
@@ -282,7 +278,7 @@ int main( int argc, char **argv )
     unsigned long           size, i;
 
     // Program starts!
-    printf( "\n%s Main thread started! ", RT_DEBUG_ARCH );
+    printf( "\n%s Main thread started!  ----------- OpenAMP IMPLEMENTATION -----------\n", RT_DEBUG_ARCH );
 
     // Init RPMSG_LITE OpenAMP env
     my_rpmsg = rpmsg_lite_remote_init( rpmsg_lite_base, RL_PLATFORM_RV32M1_M4_M0_LINK_ID, RL_NO_FLAGS );
@@ -296,7 +292,7 @@ int main( int argc, char **argv )
     printf("\n");
 
     // Alloc RPMSG Lite messages that can transmitted
-    for( i=0; i<TEST_NUM; i++ )
+    for( i=0; i<MAX_NUM_BLOCKS; i++ )
     {
         tx_buf[i] = rpmsg_lite_alloc_tx_buffer( my_rpmsg, &size, 0 );  // 0 == RL_NONBLOCK
         if( tx_buf[i] == NULL )
@@ -306,9 +302,6 @@ int main( int argc, char **argv )
         } //endif
     } //endfor
     
-    // Init shared inter-architecture IPC objects
-    //sem_init( &global_cipher_sem, 1, 0 );
-
     // Create SDCARD reader/writer threads and wait till they finished
     memset( &attr, 0, sizeof(attr) );
     attr.stackaddr = NULL;

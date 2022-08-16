@@ -11,6 +11,7 @@ rpmsg_lite/lib/common/llist.c
 rpmsg_lite/lib/rpmsg_lite/rpmsg_lite.c
 rpmsg_lite/lib/rpmsg_lite/rpmsg_ns.c
 rpmsg_lite/lib/rpmsg_lite/rpmsg_queue.c
+rpmsg_lite/lib/rpmsg_lite/porting/environment/rpmsg_env.c
 rpmsg_lite/lib/rpmsg_lite/porting/platform/rv32m1/rpmsg_platform.c
 rpmsg_lite/lib/virtio/virtqueue.c
 ''')
