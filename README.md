@@ -11,11 +11,19 @@
 [![GitHub pull-requests](https://img.shields.io/github/issues-pr/RT-Thread/rt-thread.svg)](https://github.com/RT-Thread/rt-thread/pulls)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](https://github.com/RT-Thread/rt-thread/pulls)
 
-This is a forked version of the original RT-Thread, which has been modified to support hybrid systems.
-An hybrid system is a hardware with several cores from different ISA's (Instruction Set Architectures).
-RT-Thread-hybrid will allow executing threads, in same operating systems, for different architectures.
+This is a forked version of the original RT-Thread operating system, which has been modified to support hybrid applications.
+An hybrid system is a piece of hardware with several cores from different ISA's (Instruction Set Architectures), where there is a single OS running threads for different architectures.
+Hybrid applications can run on top of this hybrid RT-Thread OS implementation, and use all OS resources in the same way that in a mono-architecture implementation.
+In order to compile hybrid applications (and hybrid RT-Thread OS), a modified GCC toolchain is required.
+This modified GCC toolchain will be able to link different modules, from different ISAs, into a single executable.
 
-This fork is part of a final thesis work from Juan A. Andres Saez.
+This fork is part of a thesis from Juan A. Andres-Saez.
+
+Hybrid binaries can be found at 'bsp\rv32m1_vega_hybrid' folder.
+At this BSP, hybrid applications, which run on top of an hybrid RT-Thread implementation, can be compiled.
+Please take a look to 'map_hybrid.txt', at this BSP, to see an example of a memory layout of an hybrid application.
+Please refer to 'readme.txt', at this BSP, for compilation procedure.
+
 
 # Introduction
 

@@ -11,7 +11,20 @@
 [![GitHub pull-requests](https://img.shields.io/github/issues-pr/RT-Thread/rt-thread.svg)](https://github.com/RT-Thread/rt-thread/pulls)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](https://github.com/RT-Thread/rt-thread/pulls)
 
-# RT-Thread
+Dabei handelt es sich um eine abgespaltene Version des ursprünglichen RT-Thread-Betriebssystems, das zur Unterstützung hybrider Anwendungen modifiziert wurde.
+Ein Hybridsystem ist eine Hardware mit mehreren Kernen aus verschiedenen ISAs (Instruction Set Architectures), bei der es ein einziges Betriebssystem gibt, das Threads für verschiedene Architekturen ausführt.
+Hybridanwendungen können auf dieser hybriden RT-Thread-Betriebssystemimplementierung ausgeführt werden und alle Betriebssystemressourcen auf die gleiche Weise nutzen wie in einer Monoarchitektur-Implementierung.
+Um Hybridanwendungen (und Hybrid-RT-Thread-Betriebssysteme) zu kompilieren, ist eine modifizierte GCC-Toolchain erforderlich.
+Diese modifizierte GCC-Toolchain wird in der Lage sein, verschiedene Module von verschiedenen ISAs in einer einzigen ausführbaren Datei zu verknüpfen.
+
+Dieser Fork ist Teil einer Dissertation von Juan A. Andres-Saez.
+
+Hybrid-Binärdateien finden Sie im Ordner „bsp\rv32m1_vega_hybrid“.
+Auf diesem BSP können Hybridanwendungen kompiliert werden, die auf einer hybriden RT-Thread-Implementierung laufen.
+Bitte werfen Sie einen Blick auf „map_hybrid.txt“ in diesem BSP, um ein Beispiel für ein Speicherlayout einer Hybridanwendung zu sehen.
+Informationen zum Kompilierungsverfahren finden Sie in der Datei „readme.txt“ in diesem BSP.
+
+# Einführung
 
 RT-Thread wurde 2006 geboren und ist ein quelloffenes, neutrales und gemeinschaftsbasiertes Echtzeitbetriebssystem (RTOS).
 

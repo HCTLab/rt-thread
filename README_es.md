@@ -11,7 +11,21 @@
 [![GitHub pull-requests](https://img.shields.io/github/issues-pr/RT-Thread/rt-thread.svg)](https://github.com/RT-Thread/rt-thread/pulls)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](https://github.com/RT-Thread/rt-thread/pulls)
 
-# RT-Thread
+Esta es una versión modificada del sistema operativo RT-Thread, que ha sido modificada para compilar aplicaciones híbridas.
+Un sistema híbrido es un hardware con múltiples núcleos de diferentes ISA (Instruction Set Architectures), donde hay un único sistema operativo ejecutando subprocesos para diferentes arquitecturas.
+Las aplicaciones híbridas pueden ejecutarse sobre esta implementación híbrida del sistema operativo RT-Thread y utilizar todos los recursos del sistema operativo de la misma manera que una implementación mono-arquitectura.
+Para crear aplicaciones híbridas (y un sistema operativo RT-Thread híbrido), se requiere una versión de GCC modificada.
+Esta versión de GCC modificada podrá linkar diferentes módulos, de diferentes ISA, en un único ejecutable.
+
+Esta versión híbrida del sistema operativo RT-Thread forma parte de una tesis de Juan A. Andrés-Sáez.
+
+Los binarios híbridos se pueden encontrar en la carpeta 'bsp\rv32m1_vega_hybrid'.
+En este BSP puede compilar aplicaciones híbridas que se ejecutan sobre una implementación híbrida de RT-Thread.
+Eche un vistazo a 'map_hybrid.txt', en este BSP, para ver un ejemplo del diseño en memoria de una aplicación híbrida.
+Consulte el fichero 'readme.txt', en este mismo BSP, para conocer el procedimiento de compilación.
+
+
+# Introducción
 
 RT-Thread nació en 2006, es un sistema operativo en tiempo real (RTOS) de código abierto, neutral y basado en la comunidad.
 

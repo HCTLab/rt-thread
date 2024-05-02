@@ -11,6 +11,19 @@
 [![GitHub pull-requests](https://img.shields.io/github/issues-pr/RT-Thread/rt-thread.svg)](https://github.com/RT-Thread/rt-thread/pulls)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat)](https://github.com/RT-Thread/rt-thread/pulls)
 
+这是原始 RT-Thread 操作系统的分支版本，经过修改以支持混合应用程序。
+混合系统是一个具有来自不同 ISA（指令集架构）的多个核心的硬件，其中有一个操作系统为不同架构运行线程。
+混合应用程序可以在此混合 RT-Thread 操作系统实现之上运行，并以与单一架构实现中相同的方式使用所有操作系统资源。
+为了编译混合应用程序（和混合 RT-Thread 操作系统），需要修改 GCC 工具链。
+这个修改后的 GCC 工具链将能够将来自不同 ISA 的不同模块链接到单个可执行文件中。
+
+该叉子是 Juan A. Andres-Saez 论文的一部分。
+
+混合二进制文件可以在“bsp\rv32m1_vega_hybrid”文件夹中找到。
+在此 BSP 中，可以编译在混合 RT-Thread 实现之上运行的混合应用程序。
+请查看此 BSP 中的“map_hybrid.txt”，了解混合应用程序的内存布局示例。
+请参阅此 BSP 中的“readme.txt”以了解编译过程。
+
 ## 简介
 
 RT-Thread诞生于2006年，是一款以开源、中立、社区化发展起来的物联网操作系统。
